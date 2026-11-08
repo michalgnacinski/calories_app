@@ -160,6 +160,30 @@ export class Database {
       tx.onerror = () => reject(tx.error);
     });
   }
+
+  // Zapisz dowolne ustawienie (np. gemini_api_key)
+  async saveSetting(key, value) {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['settings'], 'readwrite');
+      const store = tx.objectStore('settings');
+      const req = store.put({ key, value });
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // Pobierz ustawienie
+  async getSetting(key) {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['settings'], 'readonly');
+      const store = tx.objectStore('settings');
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ? req.result.value : null);
+      req.onerror = () => reject(req.error);
+    });
+  }
 }
 
 export const db = new Database();

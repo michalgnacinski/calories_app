@@ -98,6 +98,12 @@
             </select>
           </div>
 
+          <!-- KLUCZ API GEMINI VISION (OPCJONALNY) -->
+          <div class="form-group-custom">
+            <label class="input-label-custom" for="input-profile-gemini-key">Klucz Google Gemini (do zdjęć potraw - opcjonalnie)</label>
+            <input type="password" id="input-profile-gemini-key" class="input-text-custom" placeholder="AIzaSy... (darmowy z aistudio.google.com)" autocomplete="off">
+          </div>
+
           <!-- Podsumowanie wyliczeń -->
           <div class="onboard-summary-box">
             <div class="onboard-stat-item">
@@ -426,16 +432,31 @@
 
         <!-- TRYB 1: OPIS INTELIGENTNY (OpenFoodFacts + Dyktafon) -->
         <div id="section-mode-ai" style="display: flex; flex-direction: column; gap: 12px;">
-          <!-- Pole Textarea z Dyktafonem -->
+          <!-- Pole Textarea z Dyktafonem i Aparatem AI -->
           <div class="meal-textarea-wrap">
             <textarea id="meal-text-input" class="meal-textarea"
               placeholder="np. 5 pancakes z kremem czekoladowym nutella"></textarea>
             <div class="textarea-voice-bar">
+              <button id="camera-scan-btn" class="voice-btn" type="button" title="Zrób zdjęcie potrawy aparatem lub wybierz z galerii">
+                <span id="camera-icon">📸</span>
+                <span id="camera-label">Zdjęcie</span>
+              </button>
+              <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display: none;">
               <button id="voice-record-btn" class="voice-btn" type="button" title="Mów na głos po polsku">
                 <span id="voice-icon">🎙️</span>
                 <span id="voice-label">Nagraj</span>
               </button>
             </div>
+          </div>
+
+          <!-- Podgląd zdjęcia i wskaźnik analizy AI -->
+          <div id="ai-photo-preview-wrap" style="display: none; align-items: center; gap: 10px; background: var(--bg-card-subtle); padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px dashed var(--border-light);">
+            <img id="ai-photo-thumb" style="width: 46px; height: 46px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-light);" alt="Zdjęcie potrawy">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+              <span id="ai-photo-status" style="font-size: 11.5px; font-weight: 800; color: var(--green-dark);">Analizuję zdjęcie przez Gemini Vision...</span>
+              <span id="ai-photo-subtext" style="font-size: 10px; color: var(--text-muted);">Sztuczna inteligencja rozpoznaje składniki i kalorie</span>
+            </div>
+            <button id="ai-photo-cancel-btn" type="button" style="background: transparent; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer;" title="Anuluj">&times;</button>
           </div>
 
           <!-- Karta z prostym schematem wpisywania -->
@@ -517,6 +538,49 @@
 
     <!-- Pływające powiadomienie Toast -->
     <div id="toast" class="toast-badge">Zapisano pomyślnie!</div>
+
+    <!-- MODAL USTAWIEŃ KLUCZA GOOGLE GEMINI VISION -->
+    <div id="api-key-modal" class="modal-overlay">
+      <div class="modal-sheet" style="max-height: 85vh;">
+        <div class="modal-header">
+          <div class="modal-title">📸 Zdjęcia potraw (Gemini AI)</div>
+          <button id="api-key-close-btn" class="modal-close-btn" type="button">&times;</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; line-height: 1.45; color: var(--text-body);">
+          <p>
+            Aplikacja <strong>Bilans</strong> wykorzystuje model <strong>Google Gemini Vision</strong>, aby automatycznie rozpoznawać potrawy ze zdjęć, szacować wielkość porcji i liczyć kalorie.
+          </p>
+
+          <div class="schemat-hint-box" style="border-left-color: #2563eb; background: #f0f7ff;">
+            <strong style="color: #1d4ed8; font-size: 12px;">🔑 Jak zdobyć darmowy klucz API w 1 minutę:</strong>
+            <ol style="margin-left: 18px; margin-top: 4px; display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: #1e3a8a;">
+              <li>Otwórz stronę: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 800; text-decoration: underline;">aistudio.google.com/app/apikey</a></li>
+              <li>Zaloguj się kontem Google i kliknij <strong>"Create API key"</strong>.</li>
+              <li>Skopiuj klucz (zaczyna się od <code>AIzaSy...</code>) i wklej poniżej.</li>
+            </ol>
+            <span style="font-size: 10px; color: #2563eb; margin-top: 2px; font-style: italic;">* Korzystanie z modelu Gemini Flash w Google AI Studio jest w 100% bezpłatne do setek zapytań dziennie.</span>
+          </div>
+
+          <div class="form-group-custom" style="margin-top: 2px;">
+            <label class="input-label-custom" for="input-gemini-key">Twój Klucz Gemini API</label>
+            <input type="password" id="input-gemini-key" class="input-text-custom" placeholder="AIzaSy..." autocomplete="off">
+            <span style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
+              🔒 Klucz jest zapisywany wyłącznie lokalnie w Twojej przeglądarce (IndexedDB).
+            </span>
+          </div>
+
+          <button id="btn-save-gemini-key" class="btn-primary-dark" type="button" style="margin-top: 4px;">
+            <span>Zapisz klucz i aktywuj aparat</span>
+            <span>✓</span>
+          </button>
+
+          <button id="btn-clear-gemini-key" type="button" style="background: transparent; border: none; color: #dc2626; font-size: 11.5px; font-weight: 700; cursor: pointer; text-align: center; padding: 4px;">
+            Usuń zapisany klucz
+          </button>
+        </div>
+      </div>
+    </div>
 
   </div>
 

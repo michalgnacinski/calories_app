@@ -166,3 +166,4 @@ export function findClosestRecipe(targetKcal, mealKey = 'dinner', excludeId = nu
 
   return list[0] || TINY_PLATES_RECIPES[0];
 }
+

@@ -8,6 +8,7 @@ import { parseMealText } from './food-parser.js';
 import { VoiceDictation } from './speech-recognition.js';
 import { db } from './db.js';
 import { getTinyPlatesSuggestion, findClosestRecipe } from './tinyplates.js';
+import { compressImage, analyzeFoodImage } from './vision-scanner.js';
 
 class BilansApp {
   constructor() {
@@ -118,6 +119,12 @@ class BilansApp {
     this.voiceRecordBtn = document.getElementById('voice-record-btn');
     this.voiceLabel = document.getElementById('voice-label');
     this.voiceStatusText = document.getElementById('voice-status-text');
+    this.cameraScanBtn = document.getElementById('camera-scan-btn');
+    this.cameraFileInput = document.getElementById('camera-file-input');
+    this.aiPhotoPreviewWrap = document.getElementById('ai-photo-preview-wrap');
+    this.aiPhotoThumb = document.getElementById('ai-photo-thumb');
+    this.aiPhotoStatus = document.getElementById('ai-photo-status');
+    this.aiPhotoCancelBtn = document.getElementById('ai-photo-cancel-btn');
     this.btnParseAndAdd = document.getElementById('btn-parse-and-add');
     this.previewBox = document.getElementById('preview-box');
     this.previewTitleBadge = document.getElementById('preview-title-badge');
@@ -125,6 +132,14 @@ class BilansApp {
     this.previewItemsList = document.getElementById('preview-items-list');
     this.btnConfirmAdd = document.getElementById('btn-confirm-add');
     this.btnOpenGlobalAdd = document.getElementById('btn-open-global-add');
+
+    // Modal Ustawień Klucza Gemini API
+    this.apiKeyModal = document.getElementById('api-key-modal');
+    this.apiKeyCloseBtn = document.getElementById('api-key-close-btn');
+    this.inputGeminiKey = document.getElementById('input-gemini-key');
+    this.btnSaveGeminiKey = document.getElementById('btn-save-gemini-key');
+    this.btnClearGeminiKey = document.getElementById('btn-clear-gemini-key');
+    this.inputProfileGeminiKey = document.getElementById('input-profile-gemini-key');
 
     // Elementy trybu Ręcznego (Szybkie kalorie)
     this.manualMealTitle = document.getElementById('manual-meal-title');
@@ -318,6 +333,19 @@ class BilansApp {
     // Obsługa TinyPlates (dodanie propozycji i losowanie innej)
     this.tpAddToMealBtn.addEventListener('click', () => this.handleAddTinyPlatesToMeal());
     this.tpRefreshBtn.addEventListener('click', () => this.handleRefreshTinyPlates());
+
+    // Obsługa Aparatu / Zdjęć AI
+    this.cameraScanBtn.addEventListener('click', () => this.handleCameraScanClick());
+    this.cameraFileInput.addEventListener('change', (e) => this.handlePhotoSelected(e));
+    this.aiPhotoCancelBtn.addEventListener('click', () => this.cancelPhotoScan());
+
+    // Obsługa Modalu Klucza Gemini API
+    this.apiKeyCloseBtn.addEventListener('click', () => this.closeApiKeyModal());
+    this.btnSaveGeminiKey.addEventListener('click', () => this.saveApiKeyFromModal());
+    this.btnClearGeminiKey.addEventListener('click', () => this.clearApiKey());
+    this.apiKeyModal.addEventListener('click', (e) => {
+      if (e.target === this.apiKeyModal) this.closeApiKeyModal();
+    });
   }
 
   switchInputMode(mode) {
@@ -422,12 +450,16 @@ class BilansApp {
     this.user = profile;
     this.targets = targets;
 
+    if (this.inputProfileGeminiKey && this.inputProfileGeminiKey.value.trim()) {
+      await db.saveSetting('gemini_api_key', this.inputProfileGeminiKey.value.trim());
+    }
+
     this.showDashboard();
     await this.loadAndRenderMealsForDate();
     this.showToast(`Witaj, ${name}! Twoje dane zostały zapamiętane.`);
   }
 
-  editUserProfile() {
+  async editUserProfile() {
     if (this.user) {
       this.inputName.value = this.user.name || '';
       this.inputGender.value = this.user.gender;
@@ -439,6 +471,12 @@ class BilansApp {
       this.inputHeight.value = this.user.heightCm;
       this.selectActivity.value = this.user.activityLevel;
       this.selectGoal.value = this.user.goal;
+
+      const currentKey = await db.getSetting('gemini_api_key');
+      if (this.inputProfileGeminiKey) {
+        this.inputProfileGeminiKey.value = currentKey || '';
+      }
+
       this.refreshOnboardingPreview();
     }
     this.showOnboarding();
@@ -646,11 +684,103 @@ class BilansApp {
     this.showToast(`Dodano "${r.title}" do Kolacji!`);
   }
 
+  // Obsługa aparatu i zdjęć posiłków AI
+  handleCameraScanClick() {
+    this.cameraFileInput.value = '';
+    this.cameraFileInput.click();
+  }
+
+  async handlePhotoSelected(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      this.aiPhotoPreviewWrap.style.display = 'flex';
+      this.aiPhotoStatus.textContent = 'Kompresuję zdjęcie na telefonie...';
+      this.btnParseAndAdd.disabled = true;
+
+      // Kompresja w locie (z ~10MB do ~100KB)
+      const compressed = await compressImage(file);
+      this.aiPhotoThumb.src = compressed.previewUrl;
+
+      this.aiPhotoStatus.textContent = 'Gemini AI analizuje potrawę i kalorie... 🔍';
+
+      // Automatycznie korzysta z klucza zdefiniowanego w pliku .env
+      const result = await analyzeFoodImage(compressed.base64, compressed.mimeType);
+
+      this.aiPhotoStatus.textContent = `Rozpoznano: ${result.dishTitle} (${result.totalKcal} kcal) ✨`;
+      this.mealTextInput.value = result.dishTitle;
+      this.pendingParsedItems = result.items;
+      this.renderParsedPreview(result.items);
+      this.showToast(`AI rozpoznało: ${result.dishTitle}!`);
+    } catch (err) {
+      console.error('Błąd analizy zdjęcia:', err);
+      this.aiPhotoStatus.textContent = `Błąd: ${err.message}`;
+      alert(`Problem z analizą zdjęcia:\n${err.message}\n\nUpewnij się, że serwer jest uruchomiony z plikiem .env.`);
+    } finally {
+      this.btnParseAndAdd.disabled = false;
+    }
+  }
+
+  cancelPhotoScan() {
+    if (this.aiPhotoPreviewWrap) {
+      this.aiPhotoPreviewWrap.style.display = 'none';
+    }
+    if (this.cameraFileInput) {
+      this.cameraFileInput.value = '';
+    }
+  }
+
+  async openApiKeyModal() {
+    const currentKey = await db.getSetting('gemini_api_key') || '';
+    if (this.inputGeminiKey) {
+      this.inputGeminiKey.value = currentKey;
+    }
+    if (this.apiKeyModal) {
+      this.apiKeyModal.classList.add('active');
+    }
+  }
+
+  closeApiKeyModal() {
+    if (this.apiKeyModal) {
+      this.apiKeyModal.classList.remove('active');
+    }
+  }
+
+  async saveApiKeyFromModal() {
+    const key = this.inputGeminiKey.value.trim();
+    if (!key) {
+      alert('Wklej prawidłowy klucz API Google Gemini (np. zaczynający się od AIzaSy...)');
+      return;
+    }
+    await db.saveSetting('gemini_api_key', key);
+    if (this.inputProfileGeminiKey) {
+      this.inputProfileGeminiKey.value = key;
+    }
+    this.closeApiKeyModal();
+    this.showToast('Klucz Gemini API zapisany! Uruchamiam aparat...');
+    setTimeout(() => {
+      this.cameraFileInput.value = '';
+      this.cameraFileInput.click();
+    }, 400);
+  }
+
+  async clearApiKey() {
+    if (confirm('Czy na pewno chcesz usunąć zapisany klucz Gemini API?')) {
+      await db.saveSetting('gemini_api_key', null);
+      if (this.inputGeminiKey) this.inputGeminiKey.value = '';
+      if (this.inputProfileGeminiKey) this.inputProfileGeminiKey.value = '';
+      this.closeApiKeyModal();
+      this.showToast('Klucz API usunięty');
+    }
+  }
+
   // Modal posiłków
   openMealModal(mealKey = 'breakfast') {
     this.activeMealKey = mealKey;
     this.selectModalMeal(mealKey);
     this.switchInputMode('ai');
+    this.cancelPhotoScan();
 
     this.mealTextInput.value = '';
     this.manualMealTitle.value = '';
