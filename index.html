@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Bilans</title>
+
+  <!-- PWA & Mobile Optimization -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#143323">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bilans">
+  <meta name="application-name" content="Bilans">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <div id="app-container">
+
+    <!-- ======================================================== -->
+    <!-- WIDOK 1: ONBOARDING / PIERWSZE WYPEŁNIENIE ANKIETY       -->
+    <!-- ======================================================== -->
+    <main id="view-onboarding" class="view-screen active">
+      <div class="onboarding-screen">
+        <div class="onboarding-header">
+          <div class="brand-icon-box" style="width: 44px; height: 44px; font-size: 22px;">🍃</div>
+          <h1 class="onboarding-title">Witaj w bilans.</h1>
+          <p class="onboarding-desc">Wypełnij krótkie parametry, abyśmy mogli dopasować idealne zapotrzebowanie
+            kaloryczne do Twojego stylu życia.</p>
+        </div>
+
+        <form id="profile-form" class="onboarding-form" style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- IMIĘ UŻYTKOWNIKA -->
+          <div class="form-group-custom">
+            <label class="input-label-custom" for="input-name">Twoje Imię</label>
+            <input type="text" id="input-name" class="input-text-custom" placeholder="np. Piotr" value="" required
+              autocomplete="given-name">
+          </div>
+
+          <!-- PŁEĆ -->
+          <div class="form-group-custom">
+            <label class="input-label-custom">Płeć biologiczna</label>
+            <div class="gender-pills-row">
+              <button type="button" class="gender-select-btn selected" data-gender="male">Mężczyzna</button>
+              <button type="button" class="gender-select-btn" data-gender="female">Kobieta</button>
+            </div>
+            <input type="hidden" id="input-gender" value="male">
+          </div>
+
+          <!-- WIEK & WAGA -->
+          <div class="grid-two-cols">
+            <div class="form-group-custom">
+              <label class="input-label-custom" for="input-age">Wiek (lata)</label>
+              <input type="number" id="input-age" class="input-text-custom" min="14" max="100" value="28" required>
+            </div>
+            <div class="form-group-custom">
+              <label class="input-label-custom" for="input-weight">Waga (kg)</label>
+              <input type="number" id="input-weight" class="input-text-custom" step="0.5" min="35" max="250" value="78"
+                required>
+            </div>
+          </div>
+
+          <!-- WZROST -->
+          <div class="form-group-custom">
+            <label class="input-label-custom" for="input-height">Wzrost (cm)</label>
+            <input type="number" id="input-height" class="input-text-custom" min="120" max="230" value="180" required>
+          </div>
+
+          <!-- AKTYWNOŚĆ (PAL) -->
+          <div class="form-group-custom">
+            <label class="input-label-custom" for="select-activity">Aktywność fizyczna (PAL)</label>
+            <select id="select-activity" class="select-custom">
+              <option value="sedentary">Siedzący tryb (praca biurowa, 0 treningów)</option>
+              <option value="light">Niska (spacery, 1-2 lekkie treningi w tyg.)</option>
+              <option value="moderate" selected>Umiarkowana (3-4 regularne treningi w tyg.)</option>
+              <option value="heavy">Wysoka (5-6 intensywnych treningów w tyg.)</option>
+              <option value="athlete">Sportowiec (codzienne ciężkie treningi)</option>
+            </select>
+          </div>
+
+          <!-- CEL DIETETYCZNY -->
+          <div class="form-group-custom">
+            <label class="input-label-custom" for="select-goal">Twój Cel</label>
+            <select id="select-goal" class="select-custom">
+              <option value="cut_standard" selected>Chcę schudnąć (-15% kcal, ~0.5kg/tydzień)</option>
+              <option value="cut_fast">Szybkie chudnięcie (-20% kcal)</option>
+              <option value="cut_slow">Łagodna redukcja (-10% kcal)</option>
+              <option value="maintain">Utrzymanie wagi / Rekompozycja</option>
+              <option value="bulk_lean">Czysta masa mięśniowa (+10% kcal)</option>
+              <option value="bulk_fast">Szybka budowa masy (+15% kcal)</option>
+            </select>
+          </div>
+
+          <!-- Podsumowanie wyliczeń -->
+          <div class="onboard-summary-box">
+            <div class="onboard-stat-item">
+              <span>Metabolizm podstawowy (BMR):</span>
+              <span id="preview-bmr" class="onboard-val-bold">1780 kcal</span>
+            </div>
+            <div class="onboard-stat-item">
+              <span>Całkowite zapotrzebowanie (TDEE):</span>
+              <span id="preview-tdee" class="onboard-val-bold">2759 kcal</span>
+            </div>
+            <div class="onboard-stat-item"
+              style="border-top: 1px solid var(--border-light); padding-top: 6px; margin-top: 2px;">
+              <span style="font-weight: 700;">Twój dzienny bilans:</span>
+              <span id="preview-target" class="onboard-val-bold" style="font-size: 15px;">2345 kcal</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary-dark" style="margin-top: 6px;">
+            <span>Zapisz dane i przejdź do aplikacji</span>
+            <span>→</span>
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- WIDOK 2: GŁÓWNY PANEL (DASHBOARD W STYLU "BILANS.")      -->
+    <!-- ======================================================== -->
+    <main id="view-dashboard" class="view-screen">
+
+      <!-- Pasek marki (Brand Top Bar) -->
+      <header class="brand-top-bar">
+        <div class="brand-left">
+          <div class="brand-icon-box">🍃</div>
+          <span class="brand-logo-text">bilans.</span>
+        </div>
+        <div class="brand-right">
+          <div class="secure-badge">
+            <span style="font-size: 11px;">🔒</span>
+            <span>Tylko dla Ciebie</span>
+          </div>
+          <button id="user-avatar-btn" class="user-avatar-btn" title="Edytuj dane profilu" aria-label="Profil">
+            <span id="avatar-initial">P</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Powitanie użytkownika ze zdjęcia -->
+      <section class="greeting-section">
+        <div class="greeting-text-group">
+          <div class="greeting-subtle" id="dash-greeting-name">CZEŚĆ, PIOTR</div>
+          <h1 class="greeting-title">Twój dzień, w<br>równowadze.</h1>
+        </div>
+        <button id="btn-refresh-day" class="refresh-circle-btn" title="Odśwież bilans" aria-label="Odśwież">
+          <span>🔄</span>
+        </button>
+      </section>
+
+      <!-- Pasek wyboru daty ze zdjęcia -->
+      <div class="date-nav-bar">
+        <div class="date-selector-arrows">
+          <button id="btn-prev-day" class="date-nav-arrow" title="Poprzedni dzień">‹</button>
+          <span id="current-date-label">Dzisiaj · 8 Listopada</span>
+          <button id="btn-next-day" class="date-nav-arrow" title="Następny dzień">›</button>
+        </div>
+        <div class="date-toggle-pills">
+          <button id="pill-yesterday" class="date-pill-btn">Wczoraj</button>
+          <button id="pill-today" class="date-pill-btn active">Dzisiaj</button>
+        </div>
+      </div>
+
+      <!-- Karta Główna BILANS DNIA (Ciemnozielona ze zdjęcia) -->
+      <section class="bilans-hero-card">
+        <div class="hero-top-row">
+          <div class="hero-tag">
+            <span class="hero-tag-bar"></span>
+            <span>BILANS DNIA</span>
+          </div>
+          <div id="btn-edit-status" class="hero-status-pill" title="Kliknij, aby zmienić parametry">
+            <span class="hero-status-dot"></span>
+            <span id="status-text">W trakcie</span>
+            <span style="font-size: 11px;">✏️</span>
+          </div>
+        </div>
+
+        <div class="hero-main-stat-row">
+          <div class="stat-number-group">
+            <span class="stat-label-muted">Zjedzone</span>
+            <div class="stat-consumed-row">
+              <span id="dash-cal-consumed" class="stat-number-giant">0</span>
+              <span class="stat-unit-text">kcal</span>
+            </div>
+            <span id="dash-cal-target-label" class="stat-target-caption">z celu 2000 kcal</span>
+          </div>
+
+          <!-- Okrągły wskaźnik SVG ze zdjęcia -->
+          <div class="hero-circle-badge">
+            <svg class="circle-svg" width="90" height="90">
+              <circle class="circle-track" stroke-width="7" fill="transparent" r="37" cx="45" cy="45" />
+              <circle id="dash-circle-progress" class="circle-progress" stroke-width="7" fill="transparent" r="37"
+                cx="45" cy="45" stroke-dasharray="232" stroke-dashoffset="232" />
+            </svg>
+            <div class="circle-inner-content">
+              <span class="circle-leaf-icon">🍃</span>
+              <div class="circle-percent-val" id="dash-circle-percent">0<span>%</span></div>
+              <span class="circle-label-small">celu</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dolny wskaźnik karty -->
+        <div class="hero-bottom-row">
+          <span id="dash-bottom-label">Pozostało do celu</span>
+          <span id="dash-bottom-val" class="hero-bottom-highlight">2000 kcal</span>
+        </div>
+      </section>
+
+      <!-- Karta Makroskładników (Biała, 3-kolumnowa ze zdjęcia) -->
+      <section class="macros-three-card">
+        <!-- Białko -->
+        <div class="macro-column">
+          <div class="macro-name-row">
+            <span class="macro-bullet protein"></span>
+            <span>Białko</span>
+          </div>
+          <div class="macro-current-val" id="dash-p-val">≥ 0 <span>g</span></div>
+          <div class="macro-sub-label" id="dash-p-target-sub">cel: 140-160g</div>
+        </div>
+
+        <!-- Węglowodany -->
+        <div class="macro-column">
+          <div class="macro-name-row">
+            <span class="macro-bullet carbs"></span>
+            <span>Węglowodany</span>
+          </div>
+          <div class="macro-current-val" id="dash-c-val">≥ 0 <span>g</span></div>
+          <div class="macro-sub-label" id="dash-c-target-sub">cel: 220-250g</div>
+        </div>
+
+        <!-- Tłuszcz -->
+        <div class="macro-column">
+          <div class="macro-name-row">
+            <span class="macro-bullet fat"></span>
+            <span>Tłuszcz</span>
+          </div>
+          <div class="macro-current-val" id="dash-f-val">≥ 0 <span>g</span></div>
+          <div class="macro-sub-label" id="dash-f-target-sub">cel: 55-70g</div>
+        </div>
+      </section>
+
+      <!-- Sekcja Posiłków (NA TWOIM TALERZU) -->
+      <section class="meals-container">
+        <div class="meals-header-row">
+          <div>
+            <div class="meals-sub-title">NA TWOIM TALERZU</div>
+            <h2 class="meals-main-title">Posiłki</h2>
+          </div>
+          <button id="btn-open-global-add" class="btn-add-meal-pill">
+            <span>+</span> Dodaj
+          </button>
+        </div>
+
+        <!-- 1. Śniadanie -->
+        <article class="meal-entry-card" data-meal-key="breakfast">
+          <div class="meal-row-top">
+            <div class="meal-left-group">
+              <div class="meal-icon-avatar">🍳</div>
+              <div class="meal-info-texts">
+                <div class="meal-badge-line">
+                  <span class="meal-category-tag">Śniadanie</span>
+                  <span class="meal-estimate-badge">OpenFoodFacts</span>
+                </div>
+                <div class="meal-main-name" id="meal-name-breakfast">Kliknij, aby dodać posiłek</div>
+              </div>
+            </div>
+            <div class="meal-cal-right">
+              <span class="meal-cal-number" id="meal-cal-breakfast">0</span>
+              <span class="meal-cal-label">kcal</span>
+            </div>
+          </div>
+          <div class="meal-items-dropdown" id="items-list-breakfast" style="display: none;"></div>
+          <button class="quick-add-link" data-add-meal="breakfast">+ Dodaj składniki (tekst / głos)</button>
+        </article>
+
+        <!-- 2. 2 Śniadanie -->
+        <article class="meal-entry-card" data-meal-key="brunch">
+          <div class="meal-row-top">
+            <div class="meal-left-group">
+              <div class="meal-icon-avatar">🥪</div>
+              <div class="meal-info-texts">
+                <div class="meal-badge-line">
+                  <span class="meal-category-tag">2 Śniadanie</span>
+                  <span class="meal-estimate-badge">OpenFoodFacts</span>
+                </div>
+                <div class="meal-main-name" id="meal-name-brunch">Kliknij, aby dodać posiłek</div>
+              </div>
+            </div>
+            <div class="meal-cal-right">
+              <span class="meal-cal-number" id="meal-cal-brunch">0</span>
+              <span class="meal-cal-label">kcal</span>
+            </div>
+          </div>
+          <div class="meal-items-dropdown" id="items-list-brunch" style="display: none;"></div>
+          <button class="quick-add-link" data-add-meal="brunch">+ Dodaj składniki (tekst / głos)</button>
+        </article>
+
+        <!-- 3. Obiad -->
+        <article class="meal-entry-card" data-meal-key="lunch">
+          <div class="meal-row-top">
+            <div class="meal-left-group">
+              <div class="meal-icon-avatar">🥩</div>
+              <div class="meal-info-texts">
+                <div class="meal-badge-line">
+                  <span class="meal-category-tag">Obiad</span>
+                  <span class="meal-estimate-badge">OpenFoodFacts</span>
+                </div>
+                <div class="meal-main-name" id="meal-name-lunch">Kliknij, aby dodać posiłek</div>
+              </div>
+            </div>
+            <div class="meal-cal-right">
+              <span class="meal-cal-number" id="meal-cal-lunch">0</span>
+              <span class="meal-cal-label">kcal</span>
+            </div>
+          </div>
+          <div class="meal-items-dropdown" id="items-list-lunch" style="display: none;"></div>
+          <button class="quick-add-link" data-add-meal="lunch">+ Dodaj składniki (tekst / głos)</button>
+        </article>
+
+        <!-- 4. Przekąska -->
+        <article class="meal-entry-card" data-meal-key="snack">
+          <div class="meal-row-top">
+            <div class="meal-left-group">
+              <div class="meal-icon-avatar">🍏</div>
+              <div class="meal-info-texts">
+                <div class="meal-badge-line">
+                  <span class="meal-category-tag">Przekąska</span>
+                  <span class="meal-estimate-badge">OpenFoodFacts</span>
+                </div>
+                <div class="meal-main-name" id="meal-name-snack">Kliknij, aby dodać posiłek</div>
+              </div>
+            </div>
+            <div class="meal-cal-right">
+              <span class="meal-cal-number" id="meal-cal-snack">0</span>
+              <span class="meal-cal-label">kcal</span>
+            </div>
+          </div>
+          <div class="meal-items-dropdown" id="items-list-snack" style="display: none;"></div>
+          <button class="quick-add-link" data-add-meal="snack">+ Dodaj składniki (tekst / głos)</button>
+        </article>
+
+        <!-- 5. Kolacja -->
+        <article class="meal-entry-card" data-meal-key="dinner">
+          <div class="meal-row-top">
+            <div class="meal-left-group">
+              <div class="meal-icon-avatar">🥗</div>
+              <div class="meal-info-texts">
+                <div class="meal-badge-line">
+                  <span class="meal-category-tag">Kolacja</span>
+                  <span class="meal-estimate-badge">OpenFoodFacts</span>
+                </div>
+                <div class="meal-main-name" id="meal-name-dinner">Kliknij, aby dodać posiłek</div>
+              </div>
+            </div>
+            <div class="meal-cal-right">
+              <span class="meal-cal-number" id="meal-cal-dinner">0</span>
+              <span class="meal-cal-label">kcal</span>
+            </div>
+          </div>
+          <div class="meal-items-dropdown" id="items-list-dinner" style="display: none;"></div>
+          <button class="quick-add-link" data-add-meal="dinner">+ Dodaj składniki (tekst / głos)</button>
+        </article>
+      </section>
+
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- MODAL WPISYWANIA POSIŁKU (TEXTAREA + DYKTAFON)           -->
+    <!-- ======================================================== -->
+    <div id="meal-modal" class="modal-overlay">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-meal-name">Dodaj posiłek</div>
+          <button id="modal-close-btn" class="modal-close-btn" aria-label="Zamknij">&times;</button>
+        </div>
+
+        <!-- Wybór pigułek posiłku -->
+        <div class="meal-selector-pills">
+          <button class="pill-choice" data-target-meal="breakfast">Śniadanie</button>
+          <button class="pill-choice" data-target-meal="brunch">2 Śniadanie</button>
+          <button class="pill-choice" data-target-meal="lunch">Obiad</button>
+          <button class="pill-choice" data-target-meal="snack">Przekąska</button>
+          <button class="pill-choice" data-target-meal="dinner">Kolacja</button>
+        </div>
+
+        <!-- Pole Textarea z Dyktafonem -->
+        <div class="meal-textarea-wrap">
+          <textarea id="meal-text-input" class="meal-textarea"
+            placeholder="np. podsmazam 2 jaja na lyzce masła dodaje boczek"></textarea>
+          <div class="textarea-voice-bar">
+            <button id="voice-record-btn" class="voice-btn" type="button" title="Mów na głos po polsku">
+              <span id="voice-icon">🎙️</span>
+              <span id="voice-label">Nagraj</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="voice-status-text" class="voice-hint-text">
+          Wskazówka: możesz wpisać lub nagrać posiłek naturalnym językiem.
+        </div>
+
+        <!-- Przycisk przeliczenia z OpenFoodFacts -->
+        <button id="btn-parse-and-add" class="btn-primary-dark">
+          <span>Przelicz kalorie</span>
+          <span>⚡</span>
+        </button>
+
+        <!-- Podgląd rozpoznanych składników przed ostatecznym zapisem -->
+        <div id="preview-box" style="display: none; flex-direction: column; gap: 8px;">
+          <div
+            style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text-muted);">
+            <span>Rozpoznane pozycje</span>
+            <span id="preview-total-cal" style="color: var(--green-dark);">0 kcal</span>
+          </div>
+          <div id="preview-items-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          <button id="btn-confirm-add" class="btn-primary-dark" style="margin-top: 6px;">
+            <span>Zatwierdź i dodaj do posiłków</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Pływające powiadomienie Toast -->
+    <div id="toast" class="toast-badge">Zapisano pomyślnie!</div>
+
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

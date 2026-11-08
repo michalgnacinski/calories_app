@@ -1,0 +1,22 @@
+{
+  "name": "calories_app",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Sportowa mobilna aplikacja PWA do liczenia kalorii",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx --yes serve . -p 3000",
+    "test": "node --input-type=module -e \"import { parseMealText } from './js/food-parser.js'; console.log('OK');\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michalgnacinski/calories_app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/michalgnacinski/calories_app/issues"
+  },
+  "homepage": "https://github.com/michalgnacinski/calories_app#readme"
+}

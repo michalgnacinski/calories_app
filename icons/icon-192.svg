@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bilansBg192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#183d29"/>
+      <stop offset="100%" stop-color="#0f261a"/>
+    </linearGradient>
+    <linearGradient id="leafGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d6ff9e"/>
+      <stop offset="100%" stop-color="#b8f274"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Tło ikony -->
+  <rect width="192" height="192" rx="44" fill="url(#bilansBg192)"/>
+
+  <!-- Symbol liścia Bilans -->
+  <g transform="translate(96, 96) scale(0.42) translate(-256, -256)">
+    <path d="M170 330 C150 250, 190 150, 342 142 C342 210, 340 320, 220 342 C195 346, 178 342, 170 330 Z" 
+          fill="none" 
+          stroke="url(#leafGrad192)" 
+          stroke-width="30" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    
+    <path d="M190 320 C220 280, 260 230, 335 155" 
+          fill="none" 
+          stroke="url(#leafGrad192)" 
+          stroke-width="26" 
+          stroke-linecap="round"/>
+
+    <path d="M235 265 C265 272, 290 280, 305 270" 
+          fill="none" 
+          stroke="url(#leafGrad192)" 
+          stroke-width="22" 
+          stroke-linecap="round"/>
+
+    <path d="M275 215 C295 220, 315 225, 325 218" 
+          fill="none" 
+          stroke="url(#leafGrad192)" 
+          stroke-width="20" 
+          stroke-linecap="round"/>
+
+    <circle cx="365" cy="355" r="18" fill="#c6f68d"/>
+  </g>
+</svg>

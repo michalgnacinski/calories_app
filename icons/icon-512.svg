@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bilansBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#183d29"/>
+      <stop offset="100%" stop-color="#0f261a"/>
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d6ff9e"/>
+      <stop offset="100%" stop-color="#b8f274"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Tło ikony (zaokrąglony squircle) -->
+  <rect width="512" height="512" rx="120" fill="url(#bilansBg)"/>
+
+  <!-- Grupa symbolu liścia Bilans -->
+  <g filter="url(#softGlow)" transform="translate(256, 256) scale(1.1) translate(-256, -256)">
+    <!-- Zarys liścia -->
+    <path d="M170 330 C150 250, 190 150, 342 142 C342 210, 340 320, 220 342 C195 346, 178 342, 170 330 Z" 
+          fill="none" 
+          stroke="url(#leafGrad)" 
+          stroke-width="26" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    
+    <!-- Główny nerw liścia -->
+    <path d="M190 320 C220 280, 260 230, 335 155" 
+          fill="none" 
+          stroke="url(#leafGrad)" 
+          stroke-width="22" 
+          stroke-linecap="round"/>
+
+    <!-- Boczne żyłki liścia -->
+    <path d="M235 265 C265 272, 290 280, 305 270" 
+          fill="none" 
+          stroke="url(#leafGrad)" 
+          stroke-width="18" 
+          stroke-linecap="round"/>
+
+    <path d="M275 215 C295 220, 315 225, 325 218" 
+          fill="none" 
+          stroke="url(#leafGrad)" 
+          stroke-width="16" 
+          stroke-linecap="round"/>
+  </g>
+
+  <!-- Delikatna kropka w stylu bilans. -->
+  <circle cx="365" cy="355" r="14" fill="#c6f68d"/>
+</svg>
