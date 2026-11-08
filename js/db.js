@@ -93,7 +93,19 @@ export class Database {
     });
   }
 
-  // Zapisz pojedynczy posiłek dla danego dnia
+  // Pobierz wszystkich użytkowników z bazy
+  async getAllUsers() {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['users'], 'readonly');
+      const userStore = tx.objectStore('users');
+      const req = userStore.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // Pobierz pojedynczego posiłek dla danego dnia
   async saveMealItem(mealData) {
     await this.init();
     return new Promise((resolve, reject) => {
