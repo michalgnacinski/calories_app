@@ -633,4 +633,5 @@ class BilansApp {
 // Inicjalizacja aplikacji
 window.addEventListener('DOMContentLoaded', () => {
   window.bilansApp = new BilansApp();
+  window.db = db;
 });
