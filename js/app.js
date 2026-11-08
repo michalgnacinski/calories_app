@@ -1,12 +1,13 @@
 /**
  * bilans. - Główny kontroler aplikacji
- * Integruje IndexedDB, OpenFoodFacts API, Dyktafon oraz estetykę inspirowaną designem ze zdjęcia.
+ * Integruje IndexedDB, OpenFoodFacts API, Dyktafon, Ręczne wprowadzanie oraz TinyPlates API.
  */
 
 import { calculateNutritionTargets } from './nutrition-calculator.js';
 import { parseMealText } from './food-parser.js';
 import { VoiceDictation } from './speech-recognition.js';
 import { db } from './db.js';
+import { getTinyPlatesSuggestion, findClosestRecipe } from './tinyplates.js';
 
 class BilansApp {
   constructor() {
@@ -15,7 +16,9 @@ class BilansApp {
     this.selectedDate = this.getTodayDateString();
     this.mealsForSelectedDate = [];
     this.activeMealKey = 'breakfast';
+    this.activeInputMode = 'ai';
     this.pendingParsedItems = [];
+    this.currentTinyPlate = null;
 
     this.initElements();
     this.initVoice();
@@ -101,20 +104,45 @@ class BilansApp {
     this.dashFVal = document.getElementById('dash-f-val');
     this.dashFTargetSub = document.getElementById('dash-f-target-sub');
 
-    // Modal dodawania
+    // Modal dodawania i zakładki trybów
     this.mealModal = document.getElementById('meal-modal');
     this.modalCloseBtn = document.getElementById('modal-close-btn');
     this.modalMealName = document.getElementById('modal-meal-name');
+    this.tabModeAi = document.getElementById('tab-mode-ai');
+    this.tabModeManual = document.getElementById('tab-mode-manual');
+    this.sectionModeAi = document.getElementById('section-mode-ai');
+    this.sectionModeManual = document.getElementById('section-mode-manual');
+
+    // Elementy trybu AI / Opis
     this.mealTextInput = document.getElementById('meal-text-input');
     this.voiceRecordBtn = document.getElementById('voice-record-btn');
     this.voiceLabel = document.getElementById('voice-label');
     this.voiceStatusText = document.getElementById('voice-status-text');
     this.btnParseAndAdd = document.getElementById('btn-parse-and-add');
     this.previewBox = document.getElementById('preview-box');
+    this.previewTitleBadge = document.getElementById('preview-title-badge');
     this.previewTotalCal = document.getElementById('preview-total-cal');
     this.previewItemsList = document.getElementById('preview-items-list');
     this.btnConfirmAdd = document.getElementById('btn-confirm-add');
     this.btnOpenGlobalAdd = document.getElementById('btn-open-global-add');
+
+    // Elementy trybu Ręcznego (Szybkie kalorie)
+    this.manualMealTitle = document.getElementById('manual-meal-title');
+    this.manualMealKcal = document.getElementById('manual-meal-kcal');
+    this.manualP = document.getElementById('manual-p');
+    this.manualF = document.getElementById('manual-f');
+    this.manualC = document.getElementById('manual-c');
+    this.btnSaveManualMeal = document.getElementById('btn-save-manual-meal');
+
+    // Karta Inspiracji TinyPlates
+    this.tinyplatesBox = document.getElementById('tinyplates-suggestion-box');
+    this.tpRecipeTitle = document.getElementById('tp-recipe-title');
+    this.tpRecipeDesc = document.getElementById('tp-recipe-desc');
+    this.tpRecipeCal = document.getElementById('tp-recipe-cal');
+    this.tpRecipeMacros = document.getElementById('tp-recipe-macros');
+    this.tpRecipeTime = document.getElementById('tp-recipe-time');
+    this.tpRefreshBtn = document.getElementById('tp-refresh-btn');
+    this.tpAddToMealBtn = document.getElementById('tp-add-to-meal-btn');
 
     // Toast
     this.toast = document.getElementById('toast');
@@ -131,7 +159,6 @@ class BilansApp {
         this.showDashboard();
         await this.loadAndRenderMealsForDate();
       } else {
-        // Pierwsze odpalenie aplikacji -> pokazujemy formularz ankiety
         this.showOnboarding();
         this.refreshOnboardingPreview();
       }
@@ -151,7 +178,6 @@ class BilansApp {
     this.viewOnboarding.classList.remove('active');
     this.viewDashboard.classList.add('active');
 
-    // Ustaw imię użytkownika i avatar
     const name = this.user?.name || 'Użytkownik';
     this.dashGreetingName.textContent = `CZEŚĆ, ${name.toUpperCase()}`;
     this.avatarInitial.textContent = name.charAt(0).toUpperCase();
@@ -165,7 +191,7 @@ class BilansApp {
       onStart: () => {
         this.voiceRecordBtn.classList.add('recording');
         this.voiceLabel.textContent = 'Zatrzymaj';
-        this.voiceStatusText.textContent = 'Słucham... Wypowiedz składniki posiłku po polsku';
+        this.voiceStatusText.textContent = 'Słucham... Mów naturalnie posiłek';
       },
       onEnd: () => {
         this.voiceRecordBtn.classList.remove('recording');
@@ -184,7 +210,7 @@ class BilansApp {
   }
 
   bindEvents() {
-    // Przełącznik płci w formularzu
+    // Przełącznik płci w ankiecie
     document.querySelectorAll('.gender-select-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.gender-select-btn').forEach(b => b.classList.remove('selected'));
@@ -200,13 +226,13 @@ class BilansApp {
       el.addEventListener('change', () => this.refreshOnboardingPreview());
     });
 
-    // Zapis ankiety do bazy danych IndexedDB
+    // Zapis ankiety
     this.profileForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       await this.handleSaveProfile();
     });
 
-    // Kliknięcie w avatar lub status "W trakcie" -> edycja profilu
+    // Edycja profilu
     this.userAvatarBtn.addEventListener('click', () => this.editUserProfile());
     this.btnEditStatus.addEventListener('click', () => this.editUserProfile());
 
@@ -216,7 +242,7 @@ class BilansApp {
       this.showToast('Zaktualizowano bilans');
     });
 
-    // Nawigacja datami (Wczoraj / Dzisiaj / Strzałki)
+    // Nawigacja datami
     this.pillToday.addEventListener('click', () => this.changeDate(this.getTodayDateString()));
     this.pillYesterday.addEventListener('click', () => this.changeDate(this.getYesterdayDateString()));
 
@@ -240,12 +266,12 @@ class BilansApp {
       });
     });
 
-    // Przycisk "+ Dodaj" na górze sekcji posiłków
+    // Główny przycisk "+ Dodaj"
     this.btnOpenGlobalAdd.addEventListener('click', () => {
       this.openMealModal('breakfast');
     });
 
-    // Kliknięcie w kartę posiłku rozwija/zwija szczegóły składników
+    // Rozwijanie listy składników w karcie posiłku
     document.querySelectorAll('.meal-entry-card').forEach(card => {
       card.addEventListener('click', (e) => {
         if (e.target.closest('.quick-add-link') || e.target.closest('.food-del-btn')) return;
@@ -265,13 +291,20 @@ class BilansApp {
       });
     });
 
+    // Zakładki trybu wprowadzania: Inteligentny opis vs Szybkie kalorie
+    this.tabModeAi.addEventListener('click', () => this.switchInputMode('ai'));
+    this.tabModeManual.addEventListener('click', () => this.switchInputMode('manual'));
+
+    // Zapis posiłku ręcznego
+    this.btnSaveManualMeal.addEventListener('click', () => this.handleSaveManualMeal());
+
     // Zamknięcie modalu
     this.modalCloseBtn.addEventListener('click', () => this.closeMealModal());
     this.mealModal.addEventListener('click', (e) => {
       if (e.target === this.mealModal) this.closeMealModal();
     });
 
-    // Przycisk dyktafonu
+    // Dyktafon
     this.voiceRecordBtn.addEventListener('click', () => {
       this.voiceDictation.toggle();
     });
@@ -279,8 +312,78 @@ class BilansApp {
     // Przeliczenie z OpenFoodFacts
     this.btnParseAndAdd.addEventListener('click', () => this.handleParseFood());
 
-    // Zatwierdzenie składników i zapis do bazy IndexedDB
+    // Zatwierdzenie składników z podglądu
     this.btnConfirmAdd.addEventListener('click', () => this.handleConfirmAdd());
+
+    // Obsługa TinyPlates (dodanie propozycji i losowanie innej)
+    this.tpAddToMealBtn.addEventListener('click', () => this.handleAddTinyPlatesToMeal());
+    this.tpRefreshBtn.addEventListener('click', () => this.handleRefreshTinyPlates());
+  }
+
+  switchInputMode(mode) {
+    this.activeInputMode = mode;
+    if (mode === 'ai') {
+      this.tabModeAi.classList.add('active');
+      this.tabModeManual.classList.remove('active');
+      this.sectionModeAi.style.display = 'flex';
+      this.sectionModeManual.style.display = 'none';
+    } else {
+      this.tabModeManual.classList.add('active');
+      this.tabModeAi.classList.remove('active');
+      this.sectionModeAi.style.display = 'none';
+      this.sectionModeManual.style.display = 'flex';
+      setTimeout(() => this.manualMealKcal.focus(), 150);
+    }
+  }
+
+  async handleSaveManualMeal() {
+    const title = this.manualMealTitle.value.trim() || 'Posiłek';
+    const kcal = parseFloat(this.manualMealKcal.value);
+
+    if (isNaN(kcal) || kcal <= 0) {
+      alert('Podaj prawidłową liczbę kalorii (kcal).');
+      this.manualMealKcal.focus();
+      return;
+    }
+
+    let p = parseFloat(this.manualP.value) || 0;
+    let f = parseFloat(this.manualF.value) || 0;
+    let c = parseFloat(this.manualC.value) || 0;
+
+    // Jeśli użytkownik podał tylko kalorie, oszacujmy standardowy zrównoważony profil
+    if (p === 0 && f === 0 && c === 0) {
+      p = parseFloat(((kcal * 0.25) / 4).toFixed(1));
+      f = parseFloat(((kcal * 0.25) / 9).toFixed(1));
+      c = parseFloat(((kcal * 0.50) / 4).toFixed(1));
+    }
+
+    const mealRecord = {
+      userId: this.user.id,
+      date: this.selectedDate,
+      mealKey: this.activeMealKey,
+      rawTitle: title,
+      items: [
+        {
+          name: title,
+          weightG: 100,
+          unitDesc: '1 porcja',
+          kcal: Math.round(kcal),
+          protein: p,
+          fat: f,
+          carbs: c,
+          source: 'Wpis ręczny'
+        }
+      ],
+      totalKcal: Math.round(kcal),
+      totalP: p,
+      totalF: f,
+      totalC: c
+    };
+
+    await db.saveMealItem(mealRecord);
+    this.closeMealModal();
+    await this.loadAndRenderMealsForDate();
+    this.showToast(`Dodano: ${title} (${Math.round(kcal)} kcal)`);
   }
 
   refreshOnboardingPreview() {
@@ -315,7 +418,6 @@ class BilansApp {
     const targets = calculateNutritionTargets(profile);
     profile.targets = targets;
 
-    // Trwały zapis w bazie danych IndexedDB
     await db.saveUser(profile);
     this.user = profile;
     this.targets = targets;
@@ -358,15 +460,13 @@ class BilansApp {
     this.pillYesterday.classList.toggle('active', isYesterday);
   }
 
-  // Ładowanie posiłków z bazy danych IndexedDB dla wybranej daty
   async loadAndRenderMealsForDate() {
     if (!this.user) return;
-
     this.mealsForSelectedDate = await db.getMealsByDate(this.user.id, this.selectedDate);
-    this.renderDashboard();
+    await this.renderDashboard();
   }
 
-  renderDashboard() {
+  async renderDashboard() {
     if (!this.targets) return;
 
     let totalKcal = 0;
@@ -383,7 +483,6 @@ class BilansApp {
       dinner: []
     };
 
-    // Podział pobranych posiłków z bazy na kategorie
     this.mealsForSelectedDate.forEach(mealRecord => {
       const k = mealRecord.mealKey || 'breakfast';
       if (mealsByKey[k]) {
@@ -400,7 +499,6 @@ class BilansApp {
     this.dashCalConsumed.textContent = totalKcal;
     this.dashCalTargetLabel.textContent = `z celu ${targetKcal} kcal`;
 
-    // Obwód koła r=37: 2 * Math.PI * 37 ≈ 232.5
     const circumference = 232;
     const percentRatio = totalKcal > 0 ? (totalKcal / targetKcal) : 0;
     const percentInt = Math.round(percentRatio * 100);
@@ -409,16 +507,16 @@ class BilansApp {
     const strokeDash = Math.max(0, circumference - (Math.min(1.5, percentRatio) * circumference));
     this.dashCircleProgress.style.strokeDashoffset = strokeDash;
 
-    // Dolny wskaźnik bilansu
+    const remainingKcal = targetKcal - totalKcal;
     if (totalKcal >= targetKcal) {
       this.dashBottomLabel.textContent = 'Powyżej celu spożycia';
       this.dashBottomVal.textContent = `${totalKcal - targetKcal} kcal`;
     } else {
       this.dashBottomLabel.textContent = 'Pozostało do celu';
-      this.dashBottomVal.textContent = `${targetKcal - totalKcal} kcal`;
+      this.dashBottomVal.textContent = `${remainingKcal} kcal`;
     }
 
-    // 2. Karta Makroskładników (3 kolumny ze zdjęcia)
+    // 2. Karta Makro
     this.dashPVal.innerHTML = `≥ ${totalP.toFixed(1)} <span>g</span>`;
     this.dashPTargetSub.textContent = `cel: ${this.targets.protein.min}-${this.targets.protein.max}g`;
 
@@ -428,7 +526,7 @@ class BilansApp {
     this.dashFVal.innerHTML = `≥ ${totalF.toFixed(1)} <span>g</span>`;
     this.dashFTargetSub.textContent = `cel: ${this.targets.fat.min}-${this.targets.fat.max}g`;
 
-    // 3. Sekcje posiłków (Śniadanie, 2 Śniadanie, Obiad, Przekąska, Kolacja)
+    // 3. Sekcje posiłków
     mealCategories.forEach(key => {
       const records = mealsByKey[key];
       const calBadge = document.getElementById(`meal-cal-${key}`);
@@ -447,7 +545,6 @@ class BilansApp {
           listEl.style.display = 'none';
         }
       } else {
-        // Tytuł posiłku (ostatnio dodany wpis lub lista)
         const summaryTitles = records.map(r => r.rawTitle || (r.items && r.items[0]?.name)).filter(Boolean);
         if (nameLabel) {
           nameLabel.textContent = summaryTitles.slice(-1)[0] || 'Zapisany posiłek';
@@ -466,7 +563,6 @@ class BilansApp {
 
           listEl.style.display = 'flex';
 
-          // Usuwanie pojedynczego posiłku z bazy IndexedDB
           listEl.querySelectorAll('.food-del-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
               e.stopPropagation();
@@ -479,13 +575,90 @@ class BilansApp {
         }
       }
     });
+
+    // 4. Subtelna inspiracja TinyPlates (np. gdy na kolację pozostaje ~500 kcal)
+    await this.updateTinyPlatesSuggestion(remainingKcal);
+  }
+
+  async updateTinyPlatesSuggestion(remainingKcal) {
+    if (!this.tinyplatesBox) return;
+
+    // Pokazuj propozycję, gdy pozostało od 150 do 950 kcal
+    if (remainingKcal >= 150) {
+      const recipe = await getTinyPlatesSuggestion(remainingKcal, 'dinner');
+      this.currentTinyPlate = recipe;
+
+      this.tpRecipeTitle.textContent = recipe.title;
+      this.tpRecipeDesc.textContent = recipe.ingredientsSummary;
+      this.tpRecipeCal.textContent = `${recipe.kcal} kcal`;
+      this.tpRecipeMacros.textContent = `B: ${recipe.protein}g • T: ${recipe.fat}g • W: ${recipe.carbs}g`;
+      this.tpRecipeTime.textContent = `⏱ ${recipe.timeMin} min`;
+
+      this.tinyplatesBox.style.display = 'flex';
+    } else {
+      this.tinyplatesBox.style.display = 'none';
+    }
+  }
+
+  handleRefreshTinyPlates() {
+    const remainingKcal = this.targets ? (this.targets.calories.target - parseFloat(this.dashCalConsumed.textContent)) : 500;
+    const currentId = this.currentTinyPlate?.id || null;
+    const nextRecipe = findClosestRecipe(remainingKcal, 'dinner', currentId);
+    this.currentTinyPlate = nextRecipe;
+
+    this.tpRecipeTitle.textContent = nextRecipe.title;
+    this.tpRecipeDesc.textContent = nextRecipe.ingredientsSummary;
+    this.tpRecipeCal.textContent = `${nextRecipe.kcal} kcal`;
+    this.tpRecipeMacros.textContent = `B: ${nextRecipe.protein}g • T: ${nextRecipe.fat}g • W: ${nextRecipe.carbs}g`;
+    this.tpRecipeTime.textContent = `⏱ ${nextRecipe.timeMin} min`;
+    this.showToast('Nowa inspiracja TinyPlates');
+  }
+
+  async handleAddTinyPlatesToMeal() {
+    if (!this.currentTinyPlate) return;
+
+    const r = this.currentTinyPlate;
+    const mealRecord = {
+      userId: this.user.id,
+      date: this.selectedDate,
+      mealKey: 'dinner', // Dodaj do kolacji
+      rawTitle: r.title,
+      items: [
+        {
+          name: r.title,
+          weightG: 250,
+          unitDesc: '1 porcja',
+          kcal: r.kcal,
+          protein: r.protein,
+          fat: r.fat,
+          carbs: r.carbs,
+          source: r.source || 'TinyPlates API'
+        }
+      ],
+      totalKcal: r.kcal,
+      totalP: r.protein,
+      totalF: r.fat,
+      totalC: r.carbs
+    };
+
+    await db.saveMealItem(mealRecord);
+    await this.loadAndRenderMealsForDate();
+    this.showToast(`Dodano "${r.title}" do Kolacji!`);
   }
 
   // Modal posiłków
   openMealModal(mealKey = 'breakfast') {
     this.activeMealKey = mealKey;
     this.selectModalMeal(mealKey);
+    this.switchInputMode('ai');
+
     this.mealTextInput.value = '';
+    this.manualMealTitle.value = '';
+    this.manualMealKcal.value = '';
+    this.manualP.value = '';
+    this.manualF.value = '';
+    this.manualC.value = '';
+
     this.previewBox.style.display = 'none';
     this.pendingParsedItems = [];
     this.voiceStatusText.textContent = 'Wskazówka: możesz wpisać lub nagrać posiłek naturalnym językiem.';
@@ -533,14 +706,14 @@ class BilansApp {
       alert('Wystąpił problem z pobieraniem danych. Spróbuj ponownie.');
     } finally {
       this.btnParseAndAdd.disabled = false;
-      this.btnParseAndAdd.innerHTML = `<span>Przelicz kalorie</span> <span>⚡</span>`;
+      this.btnParseAndAdd.innerHTML = `<span>Przelicz kalorie (OpenFoodFacts)</span> <span>⚡</span>`;
     }
   }
 
   renderParsedPreview(items) {
     if (!items || items.length === 0) {
       this.previewBox.style.display = 'flex';
-      this.previewItemsList.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding: 6px;">Nie rozpoznano konkretnych produktów spożywczych. Spróbuj opisać np.: "podsmazam 2 jaja na lyzce masła dodaje boczek".</div>`;
+      this.previewItemsList.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding: 6px;">Nie rozpoznano konkretnych produktów spożywczych. Sprawdź prosty schemat podpowiedzi powyżej.</div>`;
       this.previewTotalCal.textContent = '0 kcal';
       this.btnConfirmAdd.style.display = 'none';
       return;
@@ -549,22 +722,51 @@ class BilansApp {
     this.btnConfirmAdd.style.display = 'flex';
     this.previewBox.style.display = 'flex';
 
+    const recipeTitle = items[0]?.recipeTitle || this.mealTextInput.value.trim();
+    if (this.previewTitleBadge) {
+      this.previewTitleBadge.textContent = recipeTitle ? `Danie: ${recipeTitle}` : 'Rozpoznane pozycje';
+    }
+
     const totalKcal = items.reduce((sum, item) => sum + item.kcal, 0);
     this.previewTotalCal.textContent = `Razem: ${totalKcal} kcal`;
 
     this.previewItemsList.innerHTML = items.map((item, idx) => `
       <div class="single-food-item">
-        <div>
-          <div class="food-title">${item.name} (${item.unitDesc || item.weightG + 'g'})</div>
+        <div style="flex: 1; min-width: 0;">
+          <div class="food-title">${item.name}</div>
           <div class="food-macros-line">${item.source} • B: ${item.protein}g | T: ${item.fat}g | W: ${item.carbs}g</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-weight: 800; color: var(--green-dark);">${item.kcal} kcal</span>
-          <button type="button" class="food-del-btn" data-preview-idx="${idx}">&times;</button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="inline-weight-edit">
+            <input type="number" class="input-weight-small" value="${item.weightG}" data-weight-idx="${idx}" min="5" max="2500" step="5" title="Zmień gramaturę">
+            <span style="font-size: 10.5px; color: var(--text-muted);">g</span>
+          </div>
+          <span style="font-weight: 800; color: var(--green-dark); min-width: 50px; text-align: right;">${item.kcal} kcal</span>
+          <button type="button" class="food-del-btn" data-preview-idx="${idx}" title="Usuń">&times;</button>
         </div>
       </div>
     `).join('');
 
+    // Zmiana wagi składnika w locie
+    this.previewItemsList.querySelectorAll('.input-weight-small').forEach(input => {
+      input.addEventListener('change', () => {
+        const idx = Number(input.dataset.weightIdx);
+        const newWeight = parseFloat(input.value) || 50;
+        const it = this.pendingParsedItems[idx];
+        if (it) {
+          const ratio = newWeight / it.weightG;
+          it.weightG = newWeight;
+          it.unitDesc = `${newWeight}g`;
+          it.kcal = Math.round(it.kcal * ratio);
+          it.protein = parseFloat((it.protein * ratio).toFixed(1));
+          it.fat = parseFloat((it.fat * ratio).toFixed(1));
+          it.carbs = parseFloat((it.carbs * ratio).toFixed(1));
+          this.renderParsedPreview(this.pendingParsedItems);
+        }
+      });
+    });
+
+    // Usuwanie składnika z podglądu
     this.previewItemsList.querySelectorAll('.food-del-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = Number(btn.dataset.previewIdx);
@@ -574,11 +776,10 @@ class BilansApp {
     });
   }
 
-  // Zapis do bazy danych IndexedDB
   async handleConfirmAdd() {
     if (!this.pendingParsedItems || this.pendingParsedItems.length === 0) return;
 
-    const rawTitle = this.mealTextInput.value.trim();
+    const rawTitle = this.pendingParsedItems[0]?.recipeTitle || this.mealTextInput.value.trim() || 'Posiłek';
     let totalKcal = 0;
     let totalP = 0;
     let totalF = 0;
@@ -603,12 +804,10 @@ class BilansApp {
       totalC: parseFloat(totalC.toFixed(1))
     };
 
-    // Zapis w IndexedDB
     await db.saveMealItem(mealRecord);
-
     this.closeMealModal();
     await this.loadAndRenderMealsForDate();
-    this.showToast('Posiłek dodany do bilansu!');
+    this.showToast(`Dodano: ${rawTitle} (${totalKcal} kcal)`);
   }
 
   showToast(message) {

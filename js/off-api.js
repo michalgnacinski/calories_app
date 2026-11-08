@@ -33,7 +33,18 @@ export const COMMON_FOODS = {
   bialk: { name: 'Odżywka białkowa WPC', kcal: 380, p: 78.0, f: 5.0, c: 6.0, unitWeight: 30, unitName: 'miarka' },
   tunczyk: { name: 'Tuńczyk w sosie własnym', kcal: 100, p: 23.5, f: 0.8, c: 0.0, unitWeight: 130, unitName: 'puszka' },
   losos: { name: 'Łosoś świeży pieczony', kcal: 200, p: 20.0, f: 13.0, c: 0.0, unitWeight: 150, unitName: 'porcja' },
-  ziemniak: { name: 'Ziemniaki gotowane', kcal: 77, p: 2.0, f: 0.1, c: 17.5, unitWeight: 150, unitName: 'porcja' }
+  ziemniak: { name: 'Ziemniaki gotowane', kcal: 77, p: 2.0, f: 0.1, c: 17.5, unitWeight: 150, unitName: 'porcja' },
+  pancake: { name: 'Pancakes / Naleśniki amerykańskie', kcal: 220, p: 6.5, f: 6.0, c: 35.0, unitWeight: 45, unitName: 'szt.' },
+  pancakes: { name: 'Pancakes / Naleśniki amerykańskie', kcal: 220, p: 6.5, f: 6.0, c: 35.0, unitWeight: 45, unitName: 'szt.' },
+  pankejk: { name: 'Pancakes / Naleśniki amerykańskie', kcal: 220, p: 6.5, f: 6.0, c: 35.0, unitWeight: 45, unitName: 'szt.' },
+  nalesnik: { name: 'Naleśnik klasyczny', kcal: 180, p: 6.0, f: 5.0, c: 27.0, unitWeight: 60, unitName: 'szt.' },
+  nutell: { name: 'Krem czekoladowo-orzechowy Nutella', kcal: 539, p: 6.3, f: 30.9, c: 57.5, unitWeight: 20, unitName: 'łyżka' },
+  czekolad: { name: 'Czekolada / Krem czekoladowy', kcal: 535, p: 6.0, f: 32.0, c: 56.0, unitWeight: 20, unitName: 'łyżka' },
+  orzechow: { name: 'Masło orzechowe 100%', kcal: 588, p: 25.0, f: 50.0, c: 20.0, unitWeight: 20, unitName: 'łyżka' },
+  dzem: { name: 'Dżem owocowy', kcal: 200, p: 0.5, f: 0.1, c: 49.0, unitWeight: 25, unitName: 'łyżka' },
+  miod: { name: 'Miód naturalny', kcal: 320, p: 0.3, f: 0.0, c: 80.0, unitWeight: 15, unitName: 'łyżeczka' },
+  jogurt: { name: 'Jogurt naturalny', kcal: 60, p: 4.0, f: 2.5, c: 5.0, unitWeight: 150, unitName: 'kubek' },
+  kefir: { name: 'Kefir naturalny', kcal: 50, p: 3.5, f: 2.0, c: 4.5, unitWeight: 250, unitName: 'szklanka' }
 };
 
 // Pamięć podręczna zapytań OpenFoodFacts API
@@ -56,9 +67,20 @@ export function normalizePl(text) {
 export function findLocalFood(query) {
   const q = normalizePl(query);
 
-  for (const [key, val] of Object.entries(COMMON_FOODS)) {
+  // Sprawdź najpierw specyficzne brandy i desery
+  if (q.includes('nutell') || q.includes('krem czekolad')) {
+    return COMMON_FOODS.nutell;
+  }
+  if (q.includes('masl') && q.includes('orzech')) {
+    return COMMON_FOODS.orzechow;
+  }
+
+  // Sortuj po długości klucza malejąco, aby dłuższe, dokładniejsze słowa miały pierwszeństwo
+  const sortedEntries = Object.entries(COMMON_FOODS).sort((a, b) => b[0].length - a[0].length);
+
+  for (const [key, val] of sortedEntries) {
     const cleanKey = normalizePl(key);
-    if (q.includes(cleanKey) || cleanKey.includes(q)) {
+    if (q.includes(cleanKey)) {
       return val;
     }
   }

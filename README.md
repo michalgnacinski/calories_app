@@ -2,36 +2,38 @@
 
 > **Twój dzień, w równowadze.**
 
-Nowoczesna, minimalistyczna i poręczna sportowa aplikacja mobilna PWA do liczenia kalorii oraz makroskładników (Białko, Tłuszcze, Węglowodany), zintegrowana z bazą **IndexedDB**, **OpenFoodFacts API** oraz **Dyktafonem** (Web Speech API).
+Nowoczesna, minimalistyczna i poręczna sportowa aplikacja mobilna PWA do liczenia kalorii oraz makroskładników (Białko, Tłuszcze, Węglowodany), zintegrowana z bazą **IndexedDB**, **OpenFoodFacts API**, **TinyPlates API** oraz **Dyktafonem** (Web Speech API).
 
 ---
 
-## 🍃 Najważniejsze funkcje
+## 🍃 Najważniejsze funkcje i nowości
 
-1. **PWA (Progressive Web App - iOS & Android)**:
+1. **Intuicyjny schemat wpisywania posiłków**:
+   - **Danie z dodatkiem**: np. `5 pancakes z kremem czekoladowym nutella` $\rightarrow$ system precyzyjnie liczy bazę (5 szt. pancakes) oraz dodatek (krem Nutella),
+   - **Danie ze składników (przepis)**: np. `pancakes z banana i 2 jaj` lub `omlet z 3 jaj i pomidora` $\rightarrow$ system liczy kalorie ze składników bazowych (banan, jajka), nie dublując fikcyjnych gotowych pancakes!
+   - **Lista produktów**: np. `2 jaja na łyżce masła dodaje boczek`.
+   - **Interaktywna edycja w locie**: w podglądzie możesz szybko zmienić gramaturę każdego składnika lub usunąć pozycję krzyżykiem `×`.
+
+2. **Ręczne dodawanie posiłku (tylko kalorie)**:
+   - Dedykowana zakładka **"⚡ Szybkie kalorie (ręcznie)"** w modalu dodawania:
+   - Wpisujesz nazwę dania (np. *Pancakes*, *Obiad u mamy*) oraz samą liczbę kalorii (*450 kcal*), a posiłek natychmiast trafia do bilansu dnia.
+   - Opcjonalne rozwinięcie dla makroskładników (Białko, Tłuszcz, Węgle).
+
+3. **Inspiracje i rekomendacje z TinyPlates API (`https://www.tinyplates.dev/`)**:
+   - Inteligentny moduł zintegrowany z API TinyPlates.
+   - Gdy na dany posiłek (np. kolację) pozostaje określony budżet (np. **~500 kcal**), aplikacja w subtelny, estetyczny sposób proponuje zbilansowane danie dopasowane do tej liczby kalorii (np. *Sałatka z grillowanym kurczakiem i awokado 505 kcal* lub *Pieczony łosoś z cukinią i kuskusem 490 kcal*).
+   - Przycisk **"+ Dodaj"** pozwala jednym tapnięciem wpisać posiłek do kolacji, a przycisk **"Inna propozycja 🔄"** pozwala wylosować inne danie.
+
+4. **PWA (Progressive Web App - iOS & Android)**:
    - Działa jako natywna aplikacja po dodaniu do ekranu głównego (`standalone`).
    - Pełna obsługa trybu offline dzięki Service Workerowi (`sw.js`).
    - Dedykowane ikony (`icon-192`, `icon-512`, `apple-touch-icon`).
    - Wsparcie dla Safe Area Insets (wcięcie / Dynamic Island w iPhone).
 
-2. **Pierwsze odpalenie i personalizacja**:
-   - Rejestracja parametrów użytkownika: Imię, płeć biologiczna, wiek, waga, wzrost, poziom aktywności (PAL), cel sylwetkowy.
-   - Trwałe zapamiętanie profilu w bazie IndexedDB.
-   - Spersonalizowane powitanie: `CZEŚĆ, {IMIĘ}` oraz awatar z inicjałem.
-
-3. **Kalkulator dietetyczny**:
+5. **Kalkulator dietetyczny i baza IndexedDB**:
    - Formuła **Mifflina-St Jeora** (złoty standard).
    - Dynamiczne wyliczanie BMR, TDEE, docelowych kalorii oraz **przedziałów makroskładników** (min-max dla Białka, Tłuszczów i Węglowodanów).
-
-4. **Karta Główna BILANS DNIA**:
-   - Ciemnozielona elegancka karta z okręgiem postępu (`% celu`).
-   - 3-kolumnowa, czytelna karta makroskładników ze wskaźnikami `≥ {wartość} g`.
    - Nawigacja dniami (`Dzisiaj` / `Wczoraj` / historia).
-
-5. **2 sposoby błyskawicznego dodawania posiłków**:
-   - **Tekst naturalny**: wpisujesz np. `podsmazam 2 jaja na lyzce masła dodaje boczek` – inteligentny parser języka polskiego rozpoznaje składniki i gramatury, odpytując publiczne API **OpenFoodFacts**.
-   - **Dyktafon (Voice-to-Text)**: nagraj swoją wypowiedź głosem, a system przekonwertuje ją na tekst i policzy kalorie.
-   - 5 sekcji posiłków: **Śniadanie**, **2 Śniadanie**, **Obiad**, **Przekąska**, **Kolacja**.
 
 ---
 

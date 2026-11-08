@@ -1,6 +1,6 @@
 /**
  * Inteligentny parser języka naturalnego (język polski) dla posiłków.
- * Rozpoznaje produkty, gramatury, jednostki miar domowych oraz liczby słowne.
+ * Rozpoznaje dania ze składników, dania z dodatkami, jednostki domowe i gramatury.
  */
 
 import { searchOpenFoodFacts, COMMON_FOODS, normalizePl, findLocalFood } from './off-api.js';
@@ -45,26 +45,43 @@ const HOUSEHOLD_MEASURES = [
   { regex: /\b(zab[a-z]+|zabek)\b/i, weight: 5, name: 'ząbek' }
 ];
 
+// Potrawy, które użytkownik często przygotowuje od zera ze składników
+const RECIPE_DISHES_REGEX = /^(pancakes?|pankejki?|nalesnik(?:i|a)?|omlet|jajecznic[ae]|owsiank[ae]|koktajl|smoothie)\s+(?:z|ze)\s+(.+)$/i;
+
 /**
- * Analizuje opis tekstowy i dzieli go na rozpoznane składniki
+ * Główna funkcja analizująca opis posiłku
  */
 export async function parseMealText(rawText) {
   if (!rawText || !rawText.trim()) return [];
 
-  // Podziel tekst na potencjalne frazy składników
-  // Zamień słowa łączące (oraz, dodaje, plus, i, na) na przecinki, dbając by nie rozbić "piersi z kurczaka"
-  const normalizedSeparators = rawText
-    .replace(/(\r\n|\n|\r)/gm, ",")
-    .replace(/\b(oraz|dodaje|do tego|plus|\+)\b/gi, ",")
-    .replace(/\s+i\s+/gi, ",")
-    .replace(/\s+na\s+(?=(?:[łl]y[żz][kc]|olej|mas[łl]|oliw|pateln))/gi, ",");
+  const trimmed = rawText.trim();
+  let textToParse = trimmed;
+  let customTitle = trimmed;
 
-  const lines = normalizedSeparators
+  // 1. Sprawdź schemat "Przepis ze składników" (np. "pancakes z banana i jajek", "omlet z 2 jaj i pomidora")
+  // W takim wypadku liczymy TYLKO wymienione składniki, nie dublując gotowych pancakes/omletu!
+  const recipeMatch = trimmed.match(RECIPE_DISHES_REGEX);
+  if (recipeMatch) {
+    const dishType = recipeMatch[1];
+    const ingredientsPart = recipeMatch[2];
+    customTitle = capitalize(trimmed);
+    textToParse = ingredientsPart;
+  }
+
+  // 2. Podział na frazy i składniki
+  // Zastępujemy spójniki bezpiecznie przecinkami
+  let normalizedSeparators = textToParse
+    .replace(/(\r\n|\n|\r)/gm, ",")
+    .replace(/\b(oraz|dodaje|do tego|plus|\+|z dodatkiem)\b/gi, ",")
+    .replace(/\s+i\s+/gi, ",")
+    .replace(/\s+na\s+(?=(?:[łl]y[żz][kc]|olej|mas[łl]|oliw|pateln))/gi, ",")
+    // Rozbij "z" / "ze" o ile nie dotyczy to stałych związków: "z kurczaka", "z indyka", "z piersi", "z oliwek"
+    .replace(/\s+(?:z|ze)\s+(?!(?:kurczak|indyk|piersi?|oliw[a-z]*|tunczyk[a-z]*))/gi, ",");
+
+  const phrases = normalizedSeparators
     .split(/[,;\n]/)
     .map(s => s.trim().replace(/^na\s+/i, ''))
     .filter(s => s.length > 0);
-
-  const phrases = lines;
 
   const items = [];
 
@@ -75,7 +92,7 @@ export async function parseMealText(rawText) {
     }
   }
 
-  // Jeśli żadna fraza nie dała wyniku, spróbuj sparsować całe zdanie jako pojedyncze słowa kluczowe
+  // Fallback: jeśli żadna fraza nie dała wyniku, sprawdź pojedyncze słowa kluczowe
   if (items.length === 0) {
     for (const [key, val] of Object.entries(COMMON_FOODS)) {
       if (normalizePl(rawText).includes(key)) {
@@ -84,7 +101,7 @@ export async function parseMealText(rawText) {
           name: val.name,
           searchQuery: key,
           weightGrams: val.unitWeight || 100,
-          unitLabel: 'porcja'
+          unitLabel: '1 porcja'
         });
       }
     }
@@ -105,7 +122,8 @@ export async function parseMealText(rawText) {
       protein: parseFloat((foodData.p * multiplier).toFixed(1)),
       fat: parseFloat((foodData.f * multiplier).toFixed(1)),
       carbs: parseFloat((foodData.c * multiplier).toFixed(1)),
-      source: foodData.source
+      source: foodData.source,
+      recipeTitle: customTitle
     });
   }
 
@@ -154,7 +172,7 @@ function extractIngredientFromPhrase(phrase) {
     }
   }
 
-  // 3. Sprawdź liczbę sztuk (np. "2 jaja", "3 banany", "jedno jabłko")
+  // 3. Sprawdź liczbę sztuk (np. "5 pancakes", "2 jaja", "3 banany")
   const countRegex = /\b(\d+|pol|polowka|jedno|jeden|jedna|dwa|dwie|trzy|cztery|piec)\s+([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+)/i;
   const countMatch = norm.match(countRegex);
   if (countMatch) {
@@ -209,4 +227,9 @@ function finalizeItem(rawPhrase, cleanName, weightGrams, unitLabel) {
     weightGrams: Math.max(5, weightGrams),
     unitLabel
   };
+}
+
+function capitalize(str) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }

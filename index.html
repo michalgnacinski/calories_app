@@ -369,12 +369,38 @@
           <div class="meal-items-dropdown" id="items-list-dinner" style="display: none;"></div>
           <button class="quick-add-link" data-add-meal="dinner">+ Dodaj składniki (tekst / głos)</button>
         </article>
+
+        <!-- Subtelna rekomendacja z TinyPlates (np. gdy na kolację zostaje ~500 kcal) -->
+        <section id="tinyplates-suggestion-box" class="tinyplates-card" style="display: none;">
+          <div class="tp-top-row">
+            <div class="tp-badge-tag">
+              <span class="tp-leaf">🍃</span>
+              <span>INSPIRACJA NA KOLACJĘ · TINYPLATES</span>
+            </div>
+            <button id="tp-refresh-btn" class="tp-reload-btn" type="button" title="Pokaż inną propozycję">Inna propozycja 🔄</button>
+          </div>
+          <div class="tp-main-content">
+            <div class="tp-details">
+              <h3 id="tp-recipe-title" class="tp-title">Pieczony łosoś z cukinią i kuskusem</h3>
+              <p id="tp-recipe-desc" class="tp-desc">Filet z łososia 140g, kuskus 50g, cukinia z oliwą</p>
+              <div class="tp-meta-pills">
+                <span id="tp-recipe-cal" class="tp-pill-highlight">490 kcal</span>
+                <span id="tp-recipe-macros" class="tp-pill-subtle">B: 36g • T: 18g • W: 45g</span>
+                <span id="tp-recipe-time" class="tp-pill-subtle">⏱ 20 min</span>
+              </div>
+            </div>
+            <button id="tp-add-to-meal-btn" class="tp-action-btn" type="button">
+              <span>+ Dodaj</span>
+            </button>
+          </div>
+        </section>
+
       </section>
 
     </main>
 
     <!-- ======================================================== -->
-    <!-- MODAL WPISYWANIA POSIŁKU (TEXTAREA + DYKTAFON)           -->
+    <!-- MODAL WPISYWANIA POSIŁKU (TEXTAREA / GŁOS LUB RĘCZNIE)   -->
     <!-- ======================================================== -->
     <div id="meal-modal" class="modal-overlay">
       <div class="modal-sheet">
@@ -392,38 +418,97 @@
           <button class="pill-choice" data-target-meal="dinner">Kolacja</button>
         </div>
 
-        <!-- Pole Textarea z Dyktafonem -->
-        <div class="meal-textarea-wrap">
-          <textarea id="meal-text-input" class="meal-textarea"
-            placeholder="np. podsmazam 2 jaja na lyzce masła dodaje boczek"></textarea>
-          <div class="textarea-voice-bar">
-            <button id="voice-record-btn" class="voice-btn" type="button" title="Mów na głos po polsku">
-              <span id="voice-icon">🎙️</span>
-              <span id="voice-label">Nagraj</span>
+        <!-- Zakładki: Inteligentny opis vs Szybkie kalorie (Ręcznie) -->
+        <div class="input-mode-tabs">
+          <button id="tab-mode-ai" class="mode-tab-btn active" type="button">🎙️ / ✍️ Opis inteligentny</button>
+          <button id="tab-mode-manual" class="mode-tab-btn" type="button">⚡ Szybkie kalorie (ręcznie)</button>
+        </div>
+
+        <!-- TRYB 1: OPIS INTELIGENTNY (OpenFoodFacts + Dyktafon) -->
+        <div id="section-mode-ai" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Pole Textarea z Dyktafonem -->
+          <div class="meal-textarea-wrap">
+            <textarea id="meal-text-input" class="meal-textarea"
+              placeholder="np. 5 pancakes z kremem czekoladowym nutella"></textarea>
+            <div class="textarea-voice-bar">
+              <button id="voice-record-btn" class="voice-btn" type="button" title="Mów na głos po polsku">
+                <span id="voice-icon">🎙️</span>
+                <span id="voice-label">Nagraj</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Karta z prostym schematem wpisywania -->
+          <div class="schemat-hint-box">
+            <div class="schemat-header">
+              <span>💡</span>
+              <span>Prosty schemat wpisywania:</span>
+            </div>
+            <ul class="schemat-list">
+              <li>• <strong>Danie z dodatkiem:</strong> <code>5 pancakes z nutellą</code> lub <code>tost z serem</code></li>
+              <li>• <strong>Danie ze składników:</strong> <code>pancakes z banana i 2 jaj</code></li>
+              <li>• <strong>Lista składników:</strong> <code>2 jaja na łyżce masła dodaje boczek</code></li>
+            </ul>
+          </div>
+
+          <div id="voice-status-text" class="voice-hint-text">
+            Wskazówka: możesz wpisać lub nagrać posiłek naturalnym językiem.
+          </div>
+
+          <!-- Przycisk przeliczenia z OpenFoodFacts -->
+          <button id="btn-parse-and-add" class="btn-primary-dark">
+            <span>Przelicz kalorie (OpenFoodFacts)</span>
+            <span>⚡</span>
+          </button>
+
+          <!-- Podgląd rozpoznanych składników przed ostatecznym zapisem -->
+          <div id="preview-box" style="display: none; flex-direction: column; gap: 8px;">
+            <div
+              style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text-muted);">
+              <span id="preview-title-badge">Rozpoznane pozycje</span>
+              <span id="preview-total-cal" style="color: var(--green-dark);">0 kcal</span>
+            </div>
+            <div id="preview-items-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            <button id="btn-confirm-add" class="btn-primary-dark" style="margin-top: 6px;">
+              <span>Zatwierdź i dodaj do posiłków</span>
             </button>
           </div>
         </div>
 
-        <div id="voice-status-text" class="voice-hint-text">
-          Wskazówka: możesz wpisać lub nagrać posiłek naturalnym językiem.
-        </div>
-
-        <!-- Przycisk przeliczenia z OpenFoodFacts -->
-        <button id="btn-parse-and-add" class="btn-primary-dark">
-          <span>Przelicz kalorie</span>
-          <span>⚡</span>
-        </button>
-
-        <!-- Podgląd rozpoznanych składników przed ostatecznym zapisem -->
-        <div id="preview-box" style="display: none; flex-direction: column; gap: 8px;">
-          <div
-            style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text-muted);">
-            <span>Rozpoznane pozycje</span>
-            <span id="preview-total-cal" style="color: var(--green-dark);">0 kcal</span>
+        <!-- TRYB 2: RĘCZNE DODANIE POSIŁKU (TYLKO KALORIE) -->
+        <div id="section-mode-manual" class="manual-form-wrap" style="display: none;">
+          <div class="form-group-custom">
+            <label class="input-label-custom" for="manual-meal-title">Nazwa posiłku</label>
+            <input type="text" id="manual-meal-title" class="input-text-custom" placeholder="np. Pancakes z nutellą, Pizza u znajomych" required>
           </div>
-          <div id="preview-items-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
-          <button id="btn-confirm-add" class="btn-primary-dark" style="margin-top: 6px;">
-            <span>Zatwierdź i dodaj do posiłków</span>
+
+          <div class="form-group-custom">
+            <label class="input-label-custom" for="manual-meal-kcal">Kalorie (kcal) *</label>
+            <input type="number" id="manual-meal-kcal" class="input-text-custom" placeholder="np. 450" min="1" max="10000" required>
+          </div>
+
+          <!-- Opcjonalny podział makroskładników -->
+          <details style="font-size: 12px; color: var(--text-muted); cursor: pointer;">
+            <summary style="font-weight: 700; color: var(--green-dark); padding: 4px 0;">+ Makroskładniki (opcjonalnie)</summary>
+            <div class="manual-grid-macros" style="margin-top: 8px;">
+              <div class="form-group-custom">
+                <label class="input-label-custom" for="manual-p">Białko (g)</label>
+                <input type="number" id="manual-p" class="input-text-custom" placeholder="0" min="0" step="0.5">
+              </div>
+              <div class="form-group-custom">
+                <label class="input-label-custom" for="manual-f">Tłuszcz (g)</label>
+                <input type="number" id="manual-f" class="input-text-custom" placeholder="0" min="0" step="0.5">
+              </div>
+              <div class="form-group-custom">
+                <label class="input-label-custom" for="manual-c">Węgle (g)</label>
+                <input type="number" id="manual-c" class="input-text-custom" placeholder="0" min="0" step="0.5">
+              </div>
+            </div>
+          </details>
+
+          <button id="btn-save-manual-meal" class="btn-primary-dark" type="button" style="margin-top: 8px;">
+            <span>Dodaj posiłek</span>
+            <span>+</span>
           </button>
         </div>
 

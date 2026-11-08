@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bilans-pwa-v3';
+const CACHE_NAME = 'bilans-pwa-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -6,6 +6,7 @@ const ASSETS_TO_CACHE = [
   './css/style.css',
   './js/app.js',
   './js/db.js',
+  './js/tinyplates.js',
   './js/nutrition-calculator.js',
   './js/food-parser.js',
   './js/off-api.js',
