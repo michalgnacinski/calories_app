@@ -88,13 +88,14 @@ export class Database {
         this.db = event.target.result;
         try {
           await this.ensureInitialUsers();
+          await this.migrateLegacyMeals();
           await this.syncWithServer();
 
           // Jednorazowe wylogowanie wszystkich aktywnych sesji w przeglądarkach
-          const resetDone = await this.getSetting('session_logout_reset_v2');
+          const resetDone = await this.getSetting('session_logout_reset_v3');
           if (!resetDone) {
             await this.saveSetting('activeUserId', null);
-            await this.saveSetting('session_logout_reset_v2', true);
+            await this.saveSetting('session_logout_reset_v3', true);
           }
         } catch (e) {
           console.warn('[Bilans DB] Inicjalizacja profili:', e);
@@ -338,27 +339,60 @@ export class Database {
     });
   }
 
-  // Pobierz wszystkie posiłki dla danego dnia i użytkownika
+  // Automatyczne przywrócenie i migracja posiłków utworzonych w dniu 9.11 i wcześniejszych
+  async migrateLegacyMeals() {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['meals'], 'readwrite');
+      const mealStore = tx.objectStore('meals');
+      const req = mealStore.getAll();
+
+      req.onsuccess = () => {
+        const meals = req.result || [];
+        let updatedCount = 0;
+        meals.forEach(m => {
+          if (!m.userId || m.userId === 'default_user') {
+            m.userId = 'user_michal';
+            mealStore.put(m);
+            updatedCount++;
+            try {
+              fetch('/api/meals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(m)
+              }).catch(() => {});
+            } catch {}
+          }
+        });
+        tx.oncomplete = () => {
+          if (updatedCount > 0) {
+            console.log(`[Bilans DB] Przywrócono i zmigrowano ${updatedCount} posiłków z dnia 9.11`);
+          }
+          resolve(updatedCount);
+        };
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // Pobierz wszystkie posiłki dla danego dnia i użytkownika (przywraca posiłki z 9.11)
   async getMealsByDate(userId, dateStr) {
     await this.init();
     return new Promise((resolve, reject) => {
       const tx = this.db.transaction(['meals'], 'readonly');
       const mealStore = tx.objectStore('meals');
-      const index = mealStore.index('user_date');
-      const request = index.getAll(IDBKeyRange.only([userId, dateStr]));
+      const dateIndex = mealStore.index('date');
+      const request = dateIndex.getAll(IDBKeyRange.only(dateStr));
 
       request.onsuccess = () => {
-        let results = request.result || [];
-        // Jeśli użytkownik nie ma jeszcze posiłków pod nowym ID, sprawdź czy były pod default_user
-        if (results.length === 0 && userId.includes('michal')) {
-          const fallbackReq = index.getAll(IDBKeyRange.only(['default_user', dateStr]));
-          fallbackReq.onsuccess = () => {
-            resolve(fallbackReq.result || []);
-          };
-          fallbackReq.onerror = () => resolve([]);
-          return;
-        }
-        resolve(results);
+        const allDayMeals = request.result || [];
+        // Zwróć posiłki użytkownika oraz posiłki utworzone w 9.11 pod default_user / bez usera
+        const userMeals = allDayMeals.filter(m => {
+          if (!m.userId || m.userId === 'default_user') {
+            return true;
+          }
+          return m.userId === userId;
+        });
+        resolve(userMeals);
       };
       request.onerror = () => reject(request.error);
     });

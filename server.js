@@ -270,7 +270,7 @@ const server = http.createServer(async (req, res) => {
     let meals = readMealsFromFile();
 
     if (userId) {
-      meals = meals.filter(m => m.userId === userId || m.userId === 'default_user');
+      meals = meals.filter(m => m.userId === userId || m.userId === 'default_user' || !m.userId);
     }
     if (date) {
       meals = meals.filter(m => m.date === date);

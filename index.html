@@ -50,19 +50,10 @@
         <!-- SEKCJA 1: LOGOWANIE IMIENIEM (BEZ HASŁA) -->
         <div id="auth-section-login" class="auth-section">
           <div class="form-group-custom">
-            <span class="input-label-custom">Wybierz profil z listy:</span>
-            <div id="login-users-list" class="user-cards-grid">
-              <!-- Renderowane dynamicznie: Martynka, Michał itp. -->
-            </div>
-          </div>
-
-          <div class="auth-divider-line">LUB WPISZ SWOJE IMIĘ</div>
-
-          <div class="form-group-custom">
-            <label class="input-label-custom" for="input-login-name">Imię użytkownika</label>
+            <label class="input-label-custom" for="input-login-name">Twoje imię</label>
             <div style="display: flex; gap: 8px;">
-              <input type="text" id="input-login-name" class="input-text-custom" placeholder="np. Michał lub Martynka" autocomplete="given-name">
-              <button type="button" id="btn-login-by-name" class="btn-primary-dark" style="padding: 12px 18px; white-space: nowrap;">
+              <input type="text" id="input-login-name" class="input-text-custom" placeholder="Wpisz swoje imię..." autocomplete="given-name" autofocus>
+              <button type="button" id="btn-login-by-name" class="btn-primary-dark" style="padding: 12px 20px; white-space: nowrap;">
                 <span>Zaloguj</span>
                 <span>→</span>
               </button>
@@ -71,7 +62,7 @@
           </div>
 
           <button type="button" id="btn-switch-to-register" class="btn-secondary-link">
-            Nie masz jeszcze konta? Wypełnij wzrost i wagę →
+            Nie masz jeszcze profilu? Wypełnij parametry →
           </button>
         </div>
 
@@ -646,10 +637,15 @@
 
           <!-- Szybka zmiana na innego użytkownika -->
           <div class="form-group-custom" id="modal-switch-section">
-            <span class="input-label-custom">Przełącz na profil:</span>
-            <div id="modal-switch-users-list" class="user-cards-grid">
-              <!-- Renderowane kafelki (np. Martynka) -->
+            <span class="input-label-custom">Przełącz na inne konto (wpisz imię):</span>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <input type="text" id="input-switch-name" class="input-text-custom" placeholder="Wpisz imię..." autocomplete="off">
+              <button type="button" id="btn-switch-by-name" class="btn-primary-dark" style="padding: 10px 16px; white-space: nowrap;">
+                <span>Przełącz</span>
+                <span>→</span>
+              </button>
             </div>
+            <div id="switch-error-msg" class="auth-error-banner" style="margin-top: 6px;"></div>
           </div>
 
           <div class="profile-action-btn-row">

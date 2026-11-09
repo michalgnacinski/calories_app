@@ -182,7 +182,9 @@ class BilansApp {
     this.modalCurrentName = document.getElementById('modal-current-name');
     this.modalCurrentMeta = document.getElementById('modal-current-meta');
     this.modalSwitchSection = document.getElementById('modal-switch-section');
-    this.modalSwitchUsersList = document.getElementById('modal-switch-users-list');
+    this.inputSwitchName = document.getElementById('input-switch-name');
+    this.btnSwitchByName = document.getElementById('btn-switch-by-name');
+    this.switchErrorMsg = document.getElementById('switch-error-msg');
     this.btnProfileModalEdit = document.getElementById('btn-profile-modal-edit');
     this.btnProfileModalNew = document.getElementById('btn-profile-modal-new');
     this.btnProfileModalLogout = document.getElementById('btn-profile-modal-logout');
@@ -320,41 +322,34 @@ class BilansApp {
     const targetKcal = this.targets?.calories?.target || 2000;
     if (this.modalCurrentMeta) this.modalCurrentMeta.textContent = `Cel: ${targetKcal} kcal / dzień`;
 
-    // Wyświetl listę pozostałych użytkowników do szybkiego przełączenia
-    const allUsers = await db.getAllUsers();
-    const otherUsers = allUsers.filter(u => u.id !== this.user.id);
-    if (this.modalSwitchUsersList) {
-      this.modalSwitchUsersList.innerHTML = '';
-
-      if (otherUsers.length > 0) {
-        if (this.modalSwitchSection) this.modalSwitchSection.style.display = 'block';
-        otherUsers.forEach(u => {
-          const item = document.createElement('div');
-          item.className = 'user-select-card';
-          const uInit = (u.name || 'U').charAt(0).toUpperCase();
-          const uKcal = u.targets?.calories?.target || 2000;
-          item.innerHTML = `
-            <div class="user-card-left">
-              <div class="user-avatar-circle" style="width: 36px; height: 36px; font-size: 15px;">${uInit}</div>
-              <div class="user-card-texts">
-                <div class="user-card-name" style="font-size: 14.5px;">${u.name}</div>
-                <div class="user-card-meta">${uKcal} kcal / dzień</div>
-              </div>
-            </div>
-            <div class="user-card-arrow" style="font-size: 13px; font-weight: 800; color: var(--green-dark);">Przełącz →</div>
-          `;
-          item.addEventListener('click', async () => {
-            this.closeProfileSwitchModal();
-            await this.loginAsUser(u);
-          });
-          this.modalSwitchUsersList.appendChild(item);
-        });
-      } else {
-        if (this.modalSwitchSection) this.modalSwitchSection.style.display = 'none';
-      }
-    }
+    if (this.inputSwitchName) this.inputSwitchName.value = '';
+    if (this.switchErrorMsg) this.switchErrorMsg.style.display = 'none';
 
     if (this.profileSwitchModal) this.profileSwitchModal.classList.add('active');
+  }
+
+  async handleSwitchByName() {
+    const name = (this.inputSwitchName?.value || '').trim();
+    if (!name) {
+      if (this.switchErrorMsg) {
+        this.switchErrorMsg.textContent = 'Wpisz imię użytkownika.';
+        this.switchErrorMsg.style.display = 'block';
+      }
+      return;
+    }
+
+    const matchedUser = await db.getUserByName(name);
+    if (matchedUser) {
+      if (this.switchErrorMsg) this.switchErrorMsg.style.display = 'none';
+      if (this.inputSwitchName) this.inputSwitchName.value = '';
+      this.closeProfileSwitchModal();
+      await this.loginAsUser(matchedUser);
+    } else {
+      if (this.switchErrorMsg) {
+        this.switchErrorMsg.textContent = `Nie znaleziono profilu "${name}".`;
+        this.switchErrorMsg.style.display = 'block';
+      }
+    }
   }
 
   closeProfileSwitchModal() {
@@ -447,6 +442,17 @@ class BilansApp {
     }
     if (this.btnProfileModalLogout) {
       this.btnProfileModalLogout.addEventListener('click', () => this.handleLogout());
+    }
+
+    // Przełączanie konta w modalu po imieniu
+    if (this.btnSwitchByName) this.btnSwitchByName.addEventListener('click', () => this.handleSwitchByName());
+    if (this.inputSwitchName) {
+      this.inputSwitchName.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleSwitchByName();
+        }
+      });
     }
 
     // Przełącznik płci w ankiecie
