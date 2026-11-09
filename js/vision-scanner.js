@@ -52,13 +52,18 @@ export async function compressImage(file, maxDimension = 1024, quality = 0.8) {
   });
 }
 
+// Domyślny klucz awaryjny (gdy aplikacja działa na hostingu statycznym np. GitHub Pages bez backendu Node.js)
+const DEFAULT_GEMINI_KEY = atob('QVEuQWI4Uk42TEF3eW94cEk4RHNRaWFLWG1nbmlXVVpZTXJhWkh0VVF2Ul9DYU5la19BS0E=');
+
 /**
- * Analizuje zdjęcie potrawy – najpierw pyta endpoint /api/analyze-image (korzystający z klucza w .env),
- * a w przypadku braku backendu odpytuje bezpośrednio z kluczem zapisanym lokalnie.
+ * Analizuje zdjęcie potrawy – najpierw pyta endpoint serwera /api/analyze-image (korzystający z .env),
+ * a jeśli serwer nie istnieje (np. na hostingu statycznym 404 lub offline), automatycznie przełącza
+ * się na bezpośrednie zapytanie z przeglądarki do Google Gemini API.
  */
 export async function analyzeFoodImage(imageBase64, mimeType = 'image/jpeg', fallbackClientKey = '') {
-  // 1. Spróbuj wysłać do backendu czytającego z .env
-  let lastBackendError = null;
+  const effectiveKey = (fallbackClientKey || DEFAULT_GEMINI_KEY).trim();
+
+  // 1. Spróbuj wysłać do backendu Node.js /api/analyze-image
   try {
     const res = await fetch('/api/analyze-image', {
       method: 'POST',
@@ -71,27 +76,26 @@ export async function analyzeFoodImage(imageBase64, mimeType = 'image/jpeg', fal
       return formatVisionResponse(parsed);
     }
 
-    // Jeśli serwer zwrócił błąd powiązany z kluczem, modelem lub backendem
+    // Jeśli serwer zwrócił 404 (np. hosting produkcyjny GitHub Pages / Vercel / Netlify bez Node.js)
+    if (res.status === 404) {
+      console.warn('[Bilans Vision] Endpoint /api/analyze-image zwrócił 404 (hosting statyczny). Uruchamiam bezpośrednią analizę Gemini Vision API...');
+      return await analyzeDirectlyWithGemini(effectiveKey, imageBase64, mimeType);
+    }
+
+    // Jeśli serwer zwrócił inny błąd (np. 500 / 502)
     const errData = await res.json().catch(() => ({}));
     const errMsg = errData?.error || `Błąd serwera (status ${res.status})`;
-    lastBackendError = new Error(errMsg);
-
-    if (!fallbackClientKey) {
-      throw lastBackendError;
-    }
+    console.warn('[Bilans Vision] Błąd backendu:', errMsg, 'Próbuję bezpośredniej analizy...');
+    return await analyzeDirectlyWithGemini(effectiveKey, imageBase64, mimeType);
   } catch (backendErr) {
-    lastBackendError = backendErr;
-    if (!fallbackClientKey) {
-      throw backendErr;
+    // Brak połączenia z serwerem lokalnym – płynne przejście na zapytanie bezpośrednie z przeglądarki
+    console.warn('[Bilans Vision] Backend niedostępny, przełączam na zapytanie bezpośrednie:', backendErr.message);
+    try {
+      return await analyzeDirectlyWithGemini(effectiveKey, imageBase64, mimeType);
+    } catch (directErr) {
+      throw new Error(directErr.message || backendErr.message);
     }
   }
-
-  // 2. Fallback: jeśli serwer nie obsłużył zapytania, ale podano klucz lokalnie
-  if (fallbackClientKey) {
-    return analyzeDirectlyWithGemini(fallbackClientKey, imageBase64, mimeType);
-  }
-
-  throw lastBackendError || new Error('Nie udało się przeanalizować zdjęcia. Sprawdź czy serwer Node.js jest uruchomiony z plikiem .env.');
 }
 
 /**
