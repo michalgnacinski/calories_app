@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bilans-pwa-v5';
+const CACHE_NAME = 'bilans-pwa-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -44,8 +44,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignoruj żądania zewnętrzne (np. bezpośrednie zapytania do OpenFoodFacts API)
-  if (!event.request.url.startsWith(self.location.origin)) {
+  // Ignoruj zapytania API (dynamiczne endpointy serwera) oraz zapytania zewnętrzne
+  if (!event.request.url.startsWith(self.location.origin) || event.request.url.includes('/api/')) {
     return;
   }
 

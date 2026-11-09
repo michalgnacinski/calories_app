@@ -1293,3 +1293,222 @@ body {
   background: #19402c;
   transform: translateY(-1px);
 }
+
+/* ==========================================================================
+   INTERFEJS LOGOWANIA / WYBORU UŻYTKOWNIKA (MICHAŁ, MARTYNKA, NOWY)
+   ========================================================================== */
+.auth-toggle-box {
+  display: flex;
+  background: var(--bg-card-subtle);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid var(--border-light);
+  margin-top: 4px;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.auth-tab-btn.active {
+  background: #ffffff;
+  color: var(--green-dark);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.auth-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.user-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-select-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+}
+
+.user-select-card:hover, .user-select-card:active {
+  border-color: var(--green-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(20, 51, 35, 0.08);
+}
+
+.user-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--green-dark);
+  color: var(--green-lime);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.user-card-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-card-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-heading);
+}
+
+.user-card-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.user-card-arrow {
+  color: var(--text-muted);
+  font-size: 18px;
+  font-weight: 700;
+  transition: var(--transition);
+}
+
+.user-select-card:hover .user-card-arrow {
+  color: var(--green-dark);
+  transform: translateX(3px);
+}
+
+.auth-divider-line {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  margin: 6px 0;
+}
+
+.auth-divider-line::before, .auth-divider-line::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.auth-divider-line::before {
+  margin-right: 12px;
+}
+
+.auth-divider-line::after {
+  margin-left: 12px;
+}
+
+.auth-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: none;
+}
+
+.btn-secondary-link {
+  background: transparent;
+  border: none;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  padding: 8px;
+  text-decoration: underline;
+  transition: var(--transition);
+}
+
+.btn-secondary-link:hover {
+  opacity: 0.8;
+}
+
+/* Modal przełączania / edycji profilu */
+.profile-modal-user-box {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-action-btn-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.profile-modal-btn {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: var(--transition);
+}
+
+.profile-modal-btn:hover {
+  border-color: var(--green-dark);
+  background: #ffffff;
+}
+
+.profile-modal-btn.danger {
+  color: #dc2626;
+  border-color: #fee2e2;
+  background: #fffafa;
+}
+
+.profile-modal-btn.danger:hover {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+

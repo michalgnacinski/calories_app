@@ -1,0 +1,42 @@
+[
+  {
+    "id": "user_michal",
+    "name": "Michał",
+    "gender": "male",
+    "ageYears": 20,
+    "weightKg": 91,
+    "heightCm": 186,
+    "activityLevel": "moderate",
+    "goal": "cut_slow",
+    "targets": {
+      "bmr": 1978,
+      "tdee": 3065,
+      "calories": { "target": 2759, "min": 2621, "max": 2897 },
+      "protein": { "target": 173, "min": 156, "max": 190 },
+      "fat": { "target": 77, "min": 69, "max": 89 },
+      "carbs": { "target": 344, "min": 310, "max": 378 }
+    },
+    "createdAt": "2026-11-08T10:00:00.000Z",
+    "updatedAt": "2026-11-09T13:57:00.000Z"
+  },
+  {
+    "id": "user_martynka",
+    "name": "Martyna",
+    "gender": "female",
+    "ageYears": 21,
+    "weightKg": 67,
+    "heightCm": 165,
+    "activityLevel": "light",
+    "goal": "cut_slow",
+    "targets": {
+      "bmr": 1435,
+      "tdee": 1973,
+      "calories": { "target": 1776, "min": 1687, "max": 1865 },
+      "protein": { "target": 127, "min": 114, "max": 140 },
+      "fat": { "target": 54, "min": 49, "max": 62 },
+      "carbs": { "target": 196, "min": 176, "max": 216 }
+    },
+    "createdAt": "2026-11-08T10:00:00.000Z",
+    "updatedAt": "2026-11-09T13:57:00.000Z"
+  }
+]

@@ -25,107 +25,148 @@
   <div id="app-container">
 
     <!-- ======================================================== -->
-    <!-- WIDOK 1: ONBOARDING / PIERWSZE WYPEŁNIENIE ANKIETY       -->
+    <!-- WIDOK 1: LOGOWANIE IMIENIEM LUB NOWY PROFIL (ANKIETA)    -->
     <!-- ======================================================== -->
     <main id="view-onboarding" class="view-screen active">
       <div class="onboarding-screen">
         <div class="onboarding-header">
           <div class="brand-icon-box" style="width: 44px; height: 44px; font-size: 22px;">🍃</div>
           <h1 class="onboarding-title">Witaj w bilans.</h1>
-          <p class="onboarding-desc">Wypełnij krótkie parametry, abyśmy mogli dopasować idealne zapotrzebowanie
-            kaloryczne do Twojego stylu życia.</p>
+          <p class="onboarding-desc">Wybierz swoje konto lub uzupełnij parametry, aby wyliczyć idealne zapotrzebowanie.</p>
+
+          <!-- Przełącznik trybu: Zaloguj vs Wypełnij dane -->
+          <div class="auth-toggle-box" style="width: 100%; max-width: 360px;">
+            <button type="button" id="btn-tab-login" class="auth-tab-btn active">
+              <span>👤</span>
+              <span>Zaloguj się</span>
+            </button>
+            <button type="button" id="btn-tab-register" class="auth-tab-btn">
+              <span>✨</span>
+              <span>Wypełnij dane</span>
+            </button>
+          </div>
         </div>
 
-        <form id="profile-form" class="onboarding-form" style="display: flex; flex-direction: column; gap: 16px;">
-          <!-- IMIĘ UŻYTKOWNIKA -->
+        <!-- SEKCJA 1: LOGOWANIE IMIENIEM (BEZ HASŁA) -->
+        <div id="auth-section-login" class="auth-section">
           <div class="form-group-custom">
-            <label class="input-label-custom" for="input-name">Twoje Imię</label>
-            <input type="text" id="input-name" class="input-text-custom" placeholder="np. Piotr" value="" required
-              autocomplete="given-name">
-          </div>
-
-          <!-- PŁEĆ -->
-          <div class="form-group-custom">
-            <label class="input-label-custom">Płeć biologiczna</label>
-            <div class="gender-pills-row">
-              <button type="button" class="gender-select-btn selected" data-gender="male">Mężczyzna</button>
-              <button type="button" class="gender-select-btn" data-gender="female">Kobieta</button>
-            </div>
-            <input type="hidden" id="input-gender" value="male">
-          </div>
-
-          <!-- WIEK & WAGA -->
-          <div class="grid-two-cols">
-            <div class="form-group-custom">
-              <label class="input-label-custom" for="input-age">Wiek (lata)</label>
-              <input type="number" id="input-age" class="input-text-custom" min="14" max="100" value="28" required>
-            </div>
-            <div class="form-group-custom">
-              <label class="input-label-custom" for="input-weight">Waga (kg)</label>
-              <input type="number" id="input-weight" class="input-text-custom" step="0.5" min="35" max="250" value="78"
-                required>
+            <span class="input-label-custom">Wybierz profil z listy:</span>
+            <div id="login-users-list" class="user-cards-grid">
+              <!-- Renderowane dynamicznie: Martynka, Michał itp. -->
             </div>
           </div>
 
-          <!-- WZROST -->
-          <div class="form-group-custom">
-            <label class="input-label-custom" for="input-height">Wzrost (cm)</label>
-            <input type="number" id="input-height" class="input-text-custom" min="120" max="230" value="180" required>
-          </div>
+          <div class="auth-divider-line">LUB WPISZ SWOJE IMIĘ</div>
 
-          <!-- AKTYWNOŚĆ (PAL) -->
           <div class="form-group-custom">
-            <label class="input-label-custom" for="select-activity">Aktywność fizyczna (PAL)</label>
-            <select id="select-activity" class="select-custom">
-              <option value="sedentary">Siedzący tryb (praca biurowa, 0 treningów)</option>
-              <option value="light">Niska (spacery, 1-2 lekkie treningi w tyg.)</option>
-              <option value="moderate" selected>Umiarkowana (3-4 regularne treningi w tyg.)</option>
-              <option value="heavy">Wysoka (5-6 intensywnych treningów w tyg.)</option>
-              <option value="athlete">Sportowiec (codzienne ciężkie treningi)</option>
-            </select>
-          </div>
-
-          <!-- CEL DIETETYCZNY -->
-          <div class="form-group-custom">
-            <label class="input-label-custom" for="select-goal">Twój Cel</label>
-            <select id="select-goal" class="select-custom">
-              <option value="cut_standard" selected>Chcę schudnąć (-15% kcal, ~0.5kg/tydzień)</option>
-              <option value="cut_fast">Szybkie chudnięcie (-20% kcal)</option>
-              <option value="cut_slow">Łagodna redukcja (-10% kcal)</option>
-              <option value="maintain">Utrzymanie wagi / Rekompozycja</option>
-              <option value="bulk_lean">Czysta masa mięśniowa (+10% kcal)</option>
-              <option value="bulk_fast">Szybka budowa masy (+15% kcal)</option>
-            </select>
-          </div>
-
-          <!-- KLUCZ API GEMINI VISION (OPCJONALNY) -->
-          <div class="form-group-custom">
-            <label class="input-label-custom" for="input-profile-gemini-key">Klucz Google Gemini (do zdjęć potraw - opcjonalnie)</label>
-            <input type="password" id="input-profile-gemini-key" class="input-text-custom" placeholder="AIzaSy... (darmowy z aistudio.google.com)" autocomplete="off">
-          </div>
-
-          <!-- Podsumowanie wyliczeń -->
-          <div class="onboard-summary-box">
-            <div class="onboard-stat-item">
-              <span>Metabolizm podstawowy (BMR):</span>
-              <span id="preview-bmr" class="onboard-val-bold">1780 kcal</span>
+            <label class="input-label-custom" for="input-login-name">Imię użytkownika</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="input-login-name" class="input-text-custom" placeholder="np. Michał lub Martynka" autocomplete="given-name">
+              <button type="button" id="btn-login-by-name" class="btn-primary-dark" style="padding: 12px 18px; white-space: nowrap;">
+                <span>Zaloguj</span>
+                <span>→</span>
+              </button>
             </div>
-            <div class="onboard-stat-item">
-              <span>Całkowite zapotrzebowanie (TDEE):</span>
-              <span id="preview-tdee" class="onboard-val-bold">2759 kcal</span>
-            </div>
-            <div class="onboard-stat-item"
-              style="border-top: 1px solid var(--border-light); padding-top: 6px; margin-top: 2px;">
-              <span style="font-weight: 700;">Twój dzienny bilans:</span>
-              <span id="preview-target" class="onboard-val-bold" style="font-size: 15px;">2345 kcal</span>
-            </div>
+            <div id="login-error-msg" class="auth-error-banner"></div>
           </div>
 
-          <button type="submit" class="btn-primary-dark" style="margin-top: 6px;">
-            <span>Zapisz dane i przejdź do aplikacji</span>
-            <span>→</span>
+          <button type="button" id="btn-switch-to-register" class="btn-secondary-link">
+            Nie masz jeszcze konta? Wypełnij wzrost i wagę →
           </button>
-        </form>
+        </div>
+
+        <!-- SEKCJA 2: WYPEŁNIENIE DANYCH (NOWY PROFIL) -->
+        <div id="auth-section-register" class="auth-section" style="display: none;">
+          <form id="profile-form" class="onboarding-form" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- IMIĘ UŻYTKOWNIKA -->
+            <div class="form-group-custom">
+              <label class="input-label-custom" for="input-name">Twoje Imię</label>
+              <input type="text" id="input-name" class="input-text-custom" placeholder="np. Michał, Martynka" value="" required
+                autocomplete="given-name">
+            </div>
+
+            <!-- PŁEĆ -->
+            <div class="form-group-custom">
+              <label class="input-label-custom">Płeć biologiczna</label>
+              <div class="gender-pills-row">
+                <button type="button" class="gender-select-btn selected" data-gender="male">Mężczyzna</button>
+                <button type="button" class="gender-select-btn" data-gender="female">Kobieta</button>
+              </div>
+              <input type="hidden" id="input-gender" value="male">
+            </div>
+
+            <!-- WIEK & WAGA -->
+            <div class="grid-two-cols">
+              <div class="form-group-custom">
+                <label class="input-label-custom" for="input-age">Wiek (lata)</label>
+                <input type="number" id="input-age" class="input-text-custom" min="14" max="100" value="28" required>
+              </div>
+              <div class="form-group-custom">
+                <label class="input-label-custom" for="input-weight">Waga (kg)</label>
+                <input type="number" id="input-weight" class="input-text-custom" step="0.5" min="35" max="250" value="78"
+                  required>
+              </div>
+            </div>
+
+            <!-- WZROST -->
+            <div class="form-group-custom">
+              <label class="input-label-custom" for="input-height">Wzrost (cm)</label>
+              <input type="number" id="input-height" class="input-text-custom" min="120" max="230" value="180" required>
+            </div>
+
+            <!-- AKTYWNOŚĆ (PAL) -->
+            <div class="form-group-custom">
+              <label class="input-label-custom" for="select-activity">Aktywność fizyczna (PAL)</label>
+              <select id="select-activity" class="select-custom">
+                <option value="sedentary">Siedzący tryb (praca biurowa, 0 treningów)</option>
+                <option value="light">Niska (spacery, 1-2 lekkie treningi w tyg.)</option>
+                <option value="moderate" selected>Umiarkowana (3-4 regularne treningi w tyg.)</option>
+                <option value="heavy">Wysoka (5-6 intensywnych treningów w tyg.)</option>
+                <option value="athlete">Sportowiec (codzienne ciężkie treningi)</option>
+              </select>
+            </div>
+
+            <!-- CEL DIETETYCZNY -->
+            <div class="form-group-custom">
+              <label class="input-label-custom" for="select-goal">Twój Cel</label>
+              <select id="select-goal" class="select-custom">
+                <option value="cut_standard" selected>Chcę schudnąć (-15% kcal, ~0.5kg/tydzień)</option>
+                <option value="cut_fast">Szybkie chudnięcie (-20% kcal)</option>
+                <option value="cut_slow">Łagodna redukcja (-10% kcal)</option>
+                <option value="maintain">Utrzymanie wagi / Rekompozycja</option>
+                <option value="bulk_lean">Czysta masa mięśniowa (+10% kcal)</option>
+                <option value="bulk_fast">Szybka budowa masy (+15% kcal)</option>
+              </select>
+            </div>
+
+            <!-- Podsumowanie wyliczeń -->
+            <div class="onboard-summary-box">
+              <div class="onboard-stat-item">
+                <span>Metabolizm podstawowy (BMR):</span>
+                <span id="preview-bmr" class="onboard-val-bold">1780 kcal</span>
+              </div>
+              <div class="onboard-stat-item">
+                <span>Całkowite zapotrzebowanie (TDEE):</span>
+                <span id="preview-tdee" class="onboard-val-bold">2759 kcal</span>
+              </div>
+              <div class="onboard-stat-item"
+                style="border-top: 1px solid var(--border-light); padding-top: 6px; margin-top: 2px;">
+                <span style="font-weight: 700;">Twój dzienny bilans:</span>
+                <span id="preview-target" class="onboard-val-bold" style="font-size: 15px;">2345 kcal</span>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary-dark" style="margin-top: 6px;">
+              <span>Zapisz dane i przejdź do aplikacji</span>
+              <span>→</span>
+            </button>
+
+            <button type="button" id="btn-switch-to-login" class="btn-secondary-link">
+              ← Wróć do listy profili
+            </button>
+          </form>
+        </div>
+
       </div>
     </main>
 
@@ -146,7 +187,7 @@
             <span>Tylko dla Ciebie</span>
           </div>
           <button id="user-avatar-btn" class="user-avatar-btn" title="Edytuj dane profilu" aria-label="Profil">
-            <span id="avatar-initial">P</span>
+            <span id="avatar-initial">M</span>
           </button>
         </div>
       </header>
@@ -154,7 +195,7 @@
       <!-- Powitanie użytkownika ze zdjęcia -->
       <section class="greeting-section">
         <div class="greeting-text-group">
-          <div class="greeting-subtle" id="dash-greeting-name">CZEŚĆ, PIOTR</div>
+          <div class="greeting-subtle" id="dash-greeting-name">CZEŚĆ!</div>
           <h1 class="greeting-title">Twój dzień, w<br>równowadze.</h1>
         </div>
         <button id="btn-refresh-day" class="refresh-circle-btn" title="Odśwież bilans" aria-label="Odśwież">
@@ -578,6 +619,55 @@
           <button id="btn-clear-gemini-key" type="button" style="background: transparent; border: none; color: #dc2626; font-size: 11.5px; font-weight: 700; cursor: pointer; text-align: center; padding: 4px;">
             Usuń zapisany klucz
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL ZARZĄDZANIA PROFILAMI / PRZEŁĄCZANIA UŻYTKOWNIKÓW -->
+    <div id="profile-switch-modal" class="modal-overlay">
+      <div class="modal-sheet" style="max-height: 85vh;">
+        <div class="modal-header">
+          <div class="modal-title">👤 Twoje Konto</div>
+          <button id="profile-modal-close-btn" class="modal-close-btn" type="button">&times;</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- Karta aktualnie zalogowanego użytkownika -->
+          <div class="profile-modal-user-box">
+            <div class="user-card-left">
+              <div class="user-avatar-circle" id="modal-current-avatar">M</div>
+              <div class="user-card-texts">
+                <div class="user-card-name" id="modal-current-name">Michał</div>
+                <div class="user-card-meta" id="modal-current-meta">Cel: 2375 kcal / dzień</div>
+              </div>
+            </div>
+            <span style="font-size: 11px; font-weight: 800; background: var(--green-lime); color: var(--green-dark); padding: 4px 10px; border-radius: var(--radius-pill);">AKTYWNY</span>
+          </div>
+
+          <!-- Szybka zmiana na innego użytkownika -->
+          <div class="form-group-custom" id="modal-switch-section">
+            <span class="input-label-custom">Przełącz na profil:</span>
+            <div id="modal-switch-users-list" class="user-cards-grid">
+              <!-- Renderowane kafelki (np. Martynka) -->
+            </div>
+          </div>
+
+          <div class="profile-action-btn-row">
+            <button id="btn-profile-modal-edit" type="button" class="profile-modal-btn">
+              <span>⚙️ Zmień parametry (waga, wzrost, cel)</span>
+              <span>→</span>
+            </button>
+
+            <button id="btn-profile-modal-new" type="button" class="profile-modal-btn">
+              <span>✨ Stwórz nowy profil (inny użytkownik)</span>
+              <span>+</span>
+            </button>
+
+            <button id="btn-profile-modal-logout" type="button" class="profile-modal-btn danger">
+              <span>🚪 Wyloguj (zmień użytkownika)</span>
+              <span>✕</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -20,6 +20,7 @@ class BilansApp {
     this.activeInputMode = 'ai';
     this.pendingParsedItems = [];
     this.currentTinyPlate = null;
+    this.editingUserId = null;
 
     this.initElements();
     this.initVoice();
@@ -61,6 +62,18 @@ class BilansApp {
     // Ekrany
     this.viewOnboarding = document.getElementById('view-onboarding');
     this.viewDashboard = document.getElementById('view-dashboard');
+
+    // Zakładki logowania i sekcje Onboarding
+    this.btnTabLogin = document.getElementById('btn-tab-login');
+    this.btnTabRegister = document.getElementById('btn-tab-register');
+    this.authSectionLogin = document.getElementById('auth-section-login');
+    this.authSectionRegister = document.getElementById('auth-section-register');
+    this.loginUsersList = document.getElementById('login-users-list');
+    this.inputLoginName = document.getElementById('input-login-name');
+    this.btnLoginByName = document.getElementById('btn-login-by-name');
+    this.loginErrorMsg = document.getElementById('login-error-msg');
+    this.btnSwitchToRegister = document.getElementById('btn-switch-to-register');
+    this.btnSwitchToLogin = document.getElementById('btn-switch-to-login');
 
     // Nagłówek i powitanie
     this.dashGreetingName = document.getElementById('dash-greeting-name');
@@ -161,6 +174,18 @@ class BilansApp {
 
     // Toast
     this.toast = document.getElementById('toast');
+
+    // Modal Profilu i Przełączania Użytkowników
+    this.profileSwitchModal = document.getElementById('profile-switch-modal');
+    this.profileModalCloseBtn = document.getElementById('profile-modal-close-btn');
+    this.modalCurrentAvatar = document.getElementById('modal-current-avatar');
+    this.modalCurrentName = document.getElementById('modal-current-name');
+    this.modalCurrentMeta = document.getElementById('modal-current-meta');
+    this.modalSwitchSection = document.getElementById('modal-switch-section');
+    this.modalSwitchUsersList = document.getElementById('modal-switch-users-list');
+    this.btnProfileModalEdit = document.getElementById('btn-profile-modal-edit');
+    this.btnProfileModalNew = document.getElementById('btn-profile-modal-new');
+    this.btnProfileModalLogout = document.getElementById('btn-profile-modal-logout');
   }
 
   async initApp() {
@@ -175,17 +200,19 @@ class BilansApp {
         await this.loadAndRenderMealsForDate();
       } else {
         this.showOnboarding();
-        this.refreshOnboardingPreview();
+        this.switchAuthTab('login');
       }
     } catch (e) {
       console.error('Błąd inicjalizacji bazy danych:', e);
       this.showOnboarding();
+      this.switchAuthTab('login');
     }
   }
 
   showOnboarding() {
     this.viewDashboard.classList.remove('active');
     this.viewOnboarding.classList.add('active');
+    this.renderLoginUsersList();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -199,6 +226,161 @@ class BilansApp {
 
     this.updateDateUI();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  switchAuthTab(tab) {
+    if (tab === 'login') {
+      if (this.btnTabLogin) this.btnTabLogin.classList.add('active');
+      if (this.btnTabRegister) this.btnTabRegister.classList.remove('active');
+      if (this.authSectionLogin) this.authSectionLogin.style.display = 'flex';
+      if (this.authSectionRegister) this.authSectionRegister.style.display = 'none';
+      if (this.loginErrorMsg) this.loginErrorMsg.style.display = 'none';
+      this.renderLoginUsersList();
+    } else {
+      if (this.btnTabRegister) this.btnTabRegister.classList.add('active');
+      if (this.btnTabLogin) this.btnTabLogin.classList.remove('active');
+      if (this.authSectionRegister) this.authSectionRegister.style.display = 'flex';
+      if (this.authSectionLogin) this.authSectionLogin.style.display = 'none';
+      this.refreshOnboardingPreview();
+    }
+  }
+
+  async renderLoginUsersList() {
+    if (!this.loginUsersList) return;
+    const users = await db.getAllUsers();
+    this.loginUsersList.innerHTML = '';
+
+    if (users.length === 0) {
+      this.switchAuthTab('register');
+      return;
+    }
+
+    users.forEach(u => {
+      const card = document.createElement('div');
+      card.className = 'user-select-card';
+      const initial = (u.name || 'U').charAt(0).toUpperCase();
+      const targetKcal = u.targets?.calories?.target || Math.round(u.targets?.tdee || 2000);
+      const targetP = u.targets?.protein?.target || 140;
+
+      card.innerHTML = `
+        <div class="user-card-left">
+          <div class="user-avatar-circle">${initial}</div>
+          <div class="user-card-texts">
+            <div class="user-card-name">${u.name}</div>
+            <div class="user-card-meta">Cel: <strong>${targetKcal} kcal</strong> · Białko: ${targetP}g</div>
+          </div>
+        </div>
+        <div class="user-card-arrow">→</div>
+      `;
+
+      card.addEventListener('click', () => this.loginAsUser(u));
+      this.loginUsersList.appendChild(card);
+    });
+  }
+
+  async loginAsUser(user) {
+    this.user = user;
+    this.targets = user.targets || calculateNutritionTargets(user);
+    await db.setActiveUser(user.id);
+    this.showDashboard();
+    await this.loadAndRenderMealsForDate();
+    this.showToast(`Witaj, ${user.name}!`);
+  }
+
+  async handleLoginByName() {
+    const name = (this.inputLoginName?.value || '').trim();
+    if (!name) {
+      this.showLoginError('Wpisz swoje imię, np. Michał lub Martynka.');
+      if (this.inputLoginName) this.inputLoginName.focus();
+      return;
+    }
+
+    const matchedUser = await db.getUserByName(name);
+    if (matchedUser) {
+      if (this.loginErrorMsg) this.loginErrorMsg.style.display = 'none';
+      if (this.inputLoginName) this.inputLoginName.value = '';
+      await this.loginAsUser(matchedUser);
+    } else {
+      this.showLoginError(`Nie znaleziono profilu "${name}". Kliknij "Wypełnij dane", aby go utworzyć.`);
+    }
+  }
+
+  showLoginError(msg) {
+    if (this.loginErrorMsg) {
+      this.loginErrorMsg.textContent = msg;
+      this.loginErrorMsg.style.display = 'block';
+    }
+  }
+
+  async openProfileSwitchModal() {
+    if (!this.user) return;
+    const initial = (this.user.name || 'U').charAt(0).toUpperCase();
+    if (this.modalCurrentAvatar) this.modalCurrentAvatar.textContent = initial;
+    if (this.modalCurrentName) this.modalCurrentName.textContent = this.user.name;
+    const targetKcal = this.targets?.calories?.target || 2000;
+    if (this.modalCurrentMeta) this.modalCurrentMeta.textContent = `Cel: ${targetKcal} kcal / dzień`;
+
+    // Wyświetl listę pozostałych użytkowników do szybkiego przełączenia
+    const allUsers = await db.getAllUsers();
+    const otherUsers = allUsers.filter(u => u.id !== this.user.id);
+    if (this.modalSwitchUsersList) {
+      this.modalSwitchUsersList.innerHTML = '';
+
+      if (otherUsers.length > 0) {
+        if (this.modalSwitchSection) this.modalSwitchSection.style.display = 'block';
+        otherUsers.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'user-select-card';
+          const uInit = (u.name || 'U').charAt(0).toUpperCase();
+          const uKcal = u.targets?.calories?.target || 2000;
+          item.innerHTML = `
+            <div class="user-card-left">
+              <div class="user-avatar-circle" style="width: 36px; height: 36px; font-size: 15px;">${uInit}</div>
+              <div class="user-card-texts">
+                <div class="user-card-name" style="font-size: 14.5px;">${u.name}</div>
+                <div class="user-card-meta">${uKcal} kcal / dzień</div>
+              </div>
+            </div>
+            <div class="user-card-arrow" style="font-size: 13px; font-weight: 800; color: var(--green-dark);">Przełącz →</div>
+          `;
+          item.addEventListener('click', async () => {
+            this.closeProfileSwitchModal();
+            await this.loginAsUser(u);
+          });
+          this.modalSwitchUsersList.appendChild(item);
+        });
+      } else {
+        if (this.modalSwitchSection) this.modalSwitchSection.style.display = 'none';
+      }
+    }
+
+    if (this.profileSwitchModal) this.profileSwitchModal.classList.add('active');
+  }
+
+  closeProfileSwitchModal() {
+    if (this.profileSwitchModal) this.profileSwitchModal.classList.remove('active');
+  }
+
+  startNewUserProfile() {
+    this.editingUserId = null;
+    this.inputName.value = '';
+    this.inputAge.value = '28';
+    this.inputWeight.value = '70';
+    this.inputHeight.value = '175';
+    this.selectActivity.value = 'moderate';
+    this.selectGoal.value = 'cut_standard';
+    this.showOnboarding();
+    this.switchAuthTab('register');
+  }
+
+  async handleLogout() {
+    this.closeProfileSwitchModal();
+    await db.logout();
+    this.user = null;
+    this.targets = null;
+    this.showOnboarding();
+    this.switchAuthTab('login');
+    this.showToast('Wylogowano z konta.');
   }
 
   initVoice() {
@@ -225,6 +407,48 @@ class BilansApp {
   }
 
   bindEvents() {
+    // Zakładki logowania i rejestracji
+    if (this.btnTabLogin) this.btnTabLogin.addEventListener('click', () => this.switchAuthTab('login'));
+    if (this.btnTabRegister) this.btnTabRegister.addEventListener('click', () => this.switchAuthTab('register'));
+    if (this.btnSwitchToRegister) this.btnSwitchToRegister.addEventListener('click', () => this.switchAuthTab('register'));
+    if (this.btnSwitchToLogin) this.btnSwitchToLogin.addEventListener('click', () => this.switchAuthTab('login'));
+
+    // Logowanie po wpisaniu imienia
+    if (this.btnLoginByName) this.btnLoginByName.addEventListener('click', () => this.handleLoginByName());
+    if (this.inputLoginName) {
+      this.inputLoginName.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleLoginByName();
+        }
+      });
+    }
+
+    // Modal profilu / przełączanie konta
+    if (this.userAvatarBtn) this.userAvatarBtn.addEventListener('click', () => this.openProfileSwitchModal());
+    if (this.btnEditStatus) this.btnEditStatus.addEventListener('click', () => this.openProfileSwitchModal());
+    if (this.profileModalCloseBtn) this.profileModalCloseBtn.addEventListener('click', () => this.closeProfileSwitchModal());
+    if (this.profileSwitchModal) {
+      this.profileSwitchModal.addEventListener('click', (e) => {
+        if (e.target === this.profileSwitchModal) this.closeProfileSwitchModal();
+      });
+    }
+    if (this.btnProfileModalEdit) {
+      this.btnProfileModalEdit.addEventListener('click', () => {
+        this.closeProfileSwitchModal();
+        this.editUserProfile();
+      });
+    }
+    if (this.btnProfileModalNew) {
+      this.btnProfileModalNew.addEventListener('click', () => {
+        this.closeProfileSwitchModal();
+        this.startNewUserProfile();
+      });
+    }
+    if (this.btnProfileModalLogout) {
+      this.btnProfileModalLogout.addEventListener('click', () => this.handleLogout());
+    }
+
     // Przełącznik płci w ankiecie
     document.querySelectorAll('.gender-select-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -431,14 +655,17 @@ class BilansApp {
   }
 
   async handleSaveProfile() {
-    const name = this.inputName.value.trim() || 'Piotr';
+    const name = this.inputName.value.trim() || 'Michał';
+    const normName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const profileId = this.editingUserId || (this.user?.id && this.user.name.toLowerCase() === name.toLowerCase() ? this.user.id : `user_${normName}`);
+
     const profile = {
-      id: 'default_user',
+      id: profileId,
       name: name,
       gender: this.inputGender.value,
-      ageYears: parseInt(this.inputAge.value),
-      weightKg: parseFloat(this.inputWeight.value),
-      heightCm: parseFloat(this.inputHeight.value),
+      ageYears: parseInt(this.inputAge.value) || 28,
+      weightKg: parseFloat(this.inputWeight.value) || 75,
+      heightCm: parseFloat(this.inputHeight.value) || 175,
       activityLevel: this.selectActivity.value,
       goal: this.selectGoal.value
     };
@@ -446,9 +673,10 @@ class BilansApp {
     const targets = calculateNutritionTargets(profile);
     profile.targets = targets;
 
-    await db.saveUser(profile);
+    await db.saveUser(profile, true);
     this.user = profile;
     this.targets = targets;
+    this.editingUserId = null;
 
     if (this.inputProfileGeminiKey && this.inputProfileGeminiKey.value.trim()) {
       await db.saveSetting('gemini_api_key', this.inputProfileGeminiKey.value.trim());
@@ -456,21 +684,22 @@ class BilansApp {
 
     this.showDashboard();
     await this.loadAndRenderMealsForDate();
-    this.showToast(`Witaj, ${name}! Twoje dane zostały zapamiętane.`);
+    this.showToast(`Witaj, ${name}! Profil zapisany.`);
   }
 
   async editUserProfile() {
     if (this.user) {
+      this.editingUserId = this.user.id;
       this.inputName.value = this.user.name || '';
       this.inputGender.value = this.user.gender;
       document.querySelectorAll('.gender-select-btn').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.gender === this.user.gender);
       });
-      this.inputAge.value = this.user.ageYears;
-      this.inputWeight.value = this.user.weightKg;
-      this.inputHeight.value = this.user.heightCm;
-      this.selectActivity.value = this.user.activityLevel;
-      this.selectGoal.value = this.user.goal;
+      this.inputAge.value = this.user.ageYears || 28;
+      this.inputWeight.value = this.user.weightKg || 75;
+      this.inputHeight.value = this.user.heightCm || 175;
+      this.selectActivity.value = this.user.activityLevel || 'moderate';
+      this.selectGoal.value = this.user.goal || 'cut_standard';
 
       const currentKey = await db.getSetting('gemini_api_key');
       if (this.inputProfileGeminiKey) {
@@ -480,6 +709,7 @@ class BilansApp {
       this.refreshOnboardingPreview();
     }
     this.showOnboarding();
+    this.switchAuthTab('register');
   }
 
   async changeDate(newDateStr) {
