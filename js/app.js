@@ -956,8 +956,9 @@ class BilansApp {
 
       this.aiPhotoStatus.textContent = 'Gemini AI analizuje potrawę i kalorie... 🔍';
 
-      // Automatycznie korzysta z klucza zdefiniowanego w pliku .env
-      const result = await analyzeFoodImage(compressed.base64, compressed.mimeType);
+      // Automatycznie korzysta z klucza zdefiniowanego w pliku .env serwera (lub lokalnego z bazy jeśli ustawiono)
+      const clientKey = (await db.getSetting('gemini_api_key')) || '';
+      const result = await analyzeFoodImage(compressed.base64, compressed.mimeType, clientKey);
 
       this.aiPhotoStatus.textContent = `Rozpoznano: ${result.dishTitle} (${result.totalKcal} kcal) ✨`;
       this.mealTextInput.value = result.dishTitle;

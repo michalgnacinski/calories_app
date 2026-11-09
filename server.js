@@ -372,39 +372,80 @@ const server = http.createServer(async (req, res) => {
           }
         };
 
-        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
-        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+        // Modele obsługujące multimodalne wejście Vision w v1beta z obsługą priorytetu i fallbacków
+        const modelsToTry = [
+          'gemini-3.5-flash-lite',
+          'gemini-3.5-flash',
+          'gemini-3.8-flash',
+          'gemini-flash-latest'
+        ];
 
-        let geminiRes = await fetch(targetUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(geminiPayload)
-        });
+        let geminiRes = null;
+        let lastErrorMsg = '';
 
-        if (!geminiRes.ok && geminiRes.status === 404) {
-          geminiRes = await fetch(fallbackUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(geminiPayload)
-          });
+        for (const model of modelsToTry) {
+          try {
+            const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+            const candidateRes = await fetch(targetUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(geminiPayload)
+            });
+
+            if (candidateRes.ok) {
+              geminiRes = candidateRes;
+              break;
+            }
+
+            const errBody = await candidateRes.json().catch(() => ({}));
+            lastErrorMsg = errBody?.error?.message || `Status: ${candidateRes.status}`;
+            console.warn(`[Bilans Server] Model ${model} zwrócił status ${candidateRes.status}: ${lastErrorMsg}`);
+
+            // Jeśli model nie istnieje (404) lub serwer Google ma przeciążenie (503/429), próbuj kolejny
+            if (candidateRes.status === 404 || candidateRes.status === 503 || candidateRes.status === 429) {
+              continue;
+            }
+
+            // W przypadku innych błędów (np. 400 zły klucz) przerwij
+            break;
+          } catch (netErr) {
+            lastErrorMsg = netErr.message;
+            console.warn(`[Bilans Server] Błąd sieci dla modelu ${model}:`, netErr.message);
+          }
         }
 
-        if (!geminiRes.ok) {
-          const errData = await geminiRes.json().catch(() => ({}));
-          const errMsg = errData?.error?.message || `Błąd Gemini API status: ${geminiRes.status}`;
-          res.writeHead(geminiRes.status, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ error: errMsg }));
+        if (!geminiRes || !geminiRes.ok) {
+          res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: `Błąd Gemini API: ${lastErrorMsg || 'Wszystkie modele były niedostępne'}` }));
           return;
         }
 
         const data = await geminiRes.json();
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const parts = data?.candidates?.[0]?.content?.parts || [];
+        let rawText = '';
+        for (const part of parts) {
+          if (part.text) {
+            rawText += part.text;
+          }
+        }
 
         if (!rawText) {
           res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ error: 'Pusta odpowiedź z modelu Gemini.' }));
           return;
         }
+
+        // Usunięcie znaczników markdown ```json ... ``` jeśli model je dodał
+        rawText = rawText.trim();
+        if (rawText.startsWith('```json')) {
+          rawText = rawText.slice(7);
+        } else if (rawText.startsWith('```')) {
+          rawText = rawText.slice(3);
+        }
+        if (rawText.endsWith('```')) {
+          rawText = rawText.slice(0, -3);
+        }
+        rawText = rawText.trim();
 
         const parsedResult = JSON.parse(rawText);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
