@@ -469,11 +469,16 @@
             <textarea id="meal-text-input" class="meal-textarea"
               placeholder="np. 5 pancakes z kremem czekoladowym nutella"></textarea>
             <div class="textarea-voice-bar">
-              <button id="camera-scan-btn" class="voice-btn" type="button" title="Zrób zdjęcie potrawy aparatem lub wybierz z galerii">
+              <button id="camera-scan-btn" class="voice-btn" type="button" title="Zrób zdjęcie potrawy aparatem">
                 <span id="camera-icon">📸</span>
-                <span id="camera-label">Zdjęcie</span>
+                <span id="camera-label">Aparat</span>
               </button>
               <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display: none;">
+              <button id="gallery-pick-btn" class="voice-btn" type="button" title="Wybierz zdjęcie potrawy z galerii">
+                <span id="gallery-icon">🖼️</span>
+                <span id="gallery-label">Galeria</span>
+              </button>
+              <input type="file" id="gallery-file-input" accept="image/*" style="display: none;">
               <button id="voice-record-btn" class="voice-btn" type="button" title="Mów na głos po polsku">
                 <span id="voice-icon">🎙️</span>
                 <span id="voice-label">Nagraj</span>

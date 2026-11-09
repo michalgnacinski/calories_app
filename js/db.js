@@ -49,6 +49,8 @@ export const INITIAL_USERS = [
   }
 ];
 
+export const DEFAULT_MEALS = [];
+
 export class Database {
   constructor() {
     this.db = null;
@@ -88,8 +90,14 @@ export class Database {
         this.db = event.target.result;
         try {
           await this.ensureInitialUsers();
-          await this.migrateLegacyMeals();
           await this.syncWithServer();
+
+          // Jednorazowe wyczyszczenie wszystkich posiłków - świeży start od 0 kcal
+          const freshStartDone = await this.getSetting('meals_fresh_start_clean_v1');
+          if (!freshStartDone) {
+            await this.clearAllMealsEverywhere();
+            await this.saveSetting('meals_fresh_start_clean_v1', true);
+          }
 
           // Jednorazowe wylogowanie wszystkich aktywnych sesji w przeglądarkach
           const resetDone = await this.getSetting('session_logout_reset_v3');
@@ -339,6 +347,40 @@ export class Database {
     });
   }
 
+  // Pobierz wszystkie posiłki z bazy IndexedDB
+  async getAllMeals() {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['meals'], 'readonly');
+      const mealStore = tx.objectStore('meals');
+      const req = mealStore.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // Bezpośredni zapis posiłku do bazy
+  async saveMealDirect(mealData) {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['meals'], 'readwrite');
+      const mealStore = tx.objectStore('meals');
+      const req = mealStore.put(mealData);
+      tx.oncomplete = () => resolve(mealData);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // Upewnij się, że posiłki z 8 i 9 listopada są zainicjalizowane
+  async ensureInitialMeals() {
+    const existing = await this.getAllMeals();
+    for (const defMeal of DEFAULT_MEALS) {
+      const exists = existing.some(e => e.date === defMeal.date && e.mealKey === defMeal.mealKey);
+      if (!exists) {
+        await this.saveMealDirect(defMeal);
+      }
+    }
+  }
+
   // Automatyczne przywrócenie i migracja posiłków utworzonych w dniu 9.11 i wcześniejszych
   async migrateLegacyMeals() {
     return new Promise((resolve, reject) => {
@@ -374,27 +416,45 @@ export class Database {
     });
   }
 
-  // Pobierz wszystkie posiłki dla danego dnia i użytkownika (przywraca posiłki z 9.11)
+  // Całkowite wyczyszczenie wszystkich posiłków w IndexedDB oraz na backendzie (świeży start)
+  async clearAllMealsEverywhere() {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['meals'], 'readwrite');
+      const mealStore = tx.objectStore('meals');
+      const req = mealStore.clear();
+      req.onsuccess = () => {
+        try {
+          fetch('/api/meals?clearAll=true', { method: 'DELETE' }).catch(() => {});
+        } catch {}
+        resolve(true);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // Pobierz wszystkie posiłki dla danego dnia i użytkownika
   async getMealsByDate(userId, dateStr) {
     await this.init();
     return new Promise((resolve, reject) => {
       const tx = this.db.transaction(['meals'], 'readonly');
       const mealStore = tx.objectStore('meals');
-      const dateIndex = mealStore.index('date');
-      const request = dateIndex.getAll(IDBKeyRange.only(dateStr));
+      const req = mealStore.getAll();
 
-      request.onsuccess = () => {
-        const allDayMeals = request.result || [];
-        // Zwróć posiłki użytkownika oraz posiłki utworzone w 9.11 pod default_user / bez usera
-        const userMeals = allDayMeals.filter(m => {
-          if (!m.userId || m.userId === 'default_user') {
-            return true;
+      req.onsuccess = () => {
+        const allMeals = req.result || [];
+        const isMichal = !userId || userId === 'user_michal' || userId === 'default_user' || (userId && userId.includes('michal'));
+
+        const dayMeals = allMeals.filter(m => {
+          if (m.date !== dateStr) return false;
+          if (isMichal) {
+            return m.userId === 'user_michal' || m.userId === 'default_user' || !m.userId || (m.userId && m.userId.includes('michal'));
           }
           return m.userId === userId;
         });
-        resolve(userMeals);
+
+        resolve(dayMeals);
       };
-      request.onerror = () => reject(request.error);
+      req.onerror = () => reject(req.error);
     });
   }
 

@@ -108,6 +108,8 @@ function writeUsersToFile(users) {
   }
 }
 
+const DEFAULT_MEALS = [];
+
 function readMealsFromFile() {
   try {
     if (fs.existsSync(MEALS_FILE)) {
@@ -306,6 +308,13 @@ const server = http.createServer(async (req, res) => {
   // Endpoint 6: Usunięcie posiłku
   if (reqUrl.pathname === '/api/meals' && req.method === 'DELETE') {
     try {
+      if (reqUrl.searchParams.get('clearAll') === 'true') {
+        writeMealsToFile([]);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: true, cleared: true }));
+        return;
+      }
+
       const idParam = reqUrl.searchParams.get('id');
       const mealId = parseInt(idParam, 10) || idParam;
       let meals = readMealsFromFile();

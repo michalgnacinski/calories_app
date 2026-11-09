@@ -816,23 +816,34 @@ body {
 
 .textarea-voice-bar {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .voice-btn {
   background: #ffffff;
-  border: 1.5px solid var(--green-dark);
+  border: 1.5px solid var(--border-light);
   color: var(--green-dark);
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: var(--radius-pill);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   transition: var(--transition);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.voice-btn:hover {
+  background: var(--bg-card-subtle);
+  border-color: var(--green-dark);
 }
 
 .voice-btn.recording {

@@ -134,6 +134,8 @@ class BilansApp {
     this.voiceStatusText = document.getElementById('voice-status-text');
     this.cameraScanBtn = document.getElementById('camera-scan-btn');
     this.cameraFileInput = document.getElementById('camera-file-input');
+    this.galleryPickBtn = document.getElementById('gallery-pick-btn');
+    this.galleryFileInput = document.getElementById('gallery-file-input');
     this.aiPhotoPreviewWrap = document.getElementById('ai-photo-preview-wrap');
     this.aiPhotoThumb = document.getElementById('ai-photo-thumb');
     this.aiPhotoStatus = document.getElementById('ai-photo-status');
@@ -567,6 +569,12 @@ class BilansApp {
     // Obsługa Aparatu / Zdjęć AI
     this.cameraScanBtn.addEventListener('click', () => this.handleCameraScanClick());
     this.cameraFileInput.addEventListener('change', (e) => this.handlePhotoSelected(e));
+    if (this.galleryPickBtn) {
+      this.galleryPickBtn.addEventListener('click', () => this.handleGalleryPickClick());
+    }
+    if (this.galleryFileInput) {
+      this.galleryFileInput.addEventListener('change', (e) => this.handlePhotoSelected(e));
+    }
     this.aiPhotoCancelBtn.addEventListener('click', () => this.cancelPhotoScan());
 
     // Obsługa Modalu Klucza Gemini API
@@ -926,6 +934,13 @@ class BilansApp {
     this.cameraFileInput.click();
   }
 
+  handleGalleryPickClick() {
+    if (this.galleryFileInput) {
+      this.galleryFileInput.value = '';
+      this.galleryFileInput.click();
+    }
+  }
+
   async handlePhotoSelected(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -964,6 +979,9 @@ class BilansApp {
     }
     if (this.cameraFileInput) {
       this.cameraFileInput.value = '';
+    }
+    if (this.galleryFileInput) {
+      this.galleryFileInput.value = '';
     }
   }
 
